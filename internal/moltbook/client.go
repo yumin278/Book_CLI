@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -93,7 +94,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 			}
 
 			if waitOn429 && retryAfter > 0 {
-				fmt.Fprintf(io.Discard, "Rate limited. Waiting %d seconds...\n", retryAfter)
+				fmt.Fprintf(os.Stderr, "Rate limited. Waiting %d seconds...\n", retryAfter)
 				time.Sleep(time.Duration(retryAfter) * time.Second)
 				// Retry once after waiting
 				return c.DoJSON(ctx, method, path, query, body, out, false)
