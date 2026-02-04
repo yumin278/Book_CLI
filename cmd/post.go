@@ -12,7 +12,10 @@ import (
 )
 
 func init() {
-	postCmd := &cobra.Command{Use: "post", Short: "Post commands"}
+	postCmd := &cobra.Command{
+		Use:   "post",
+		Short: "Post commands",
+	}
 	rootCmd.AddCommand(postCmd)
 
 	postCmd.AddCommand(postCreateCmd())
