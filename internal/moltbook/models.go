@@ -27,6 +27,22 @@ type RegisterReq struct {
 	Description string `json:"description"`
 }
 
+type ProfileUpdateReq struct {
+	Description string                 `json:"description,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type SubmoltSettingsReq struct {
+	Description string `json:"description,omitempty"`
+	BannerColor string `json:"banner_color,omitempty"`
+	ThemeColor  string `json:"theme_color,omitempty"`
+}
+
+type ModeratorReq struct {
+	AgentName string `json:"agent_name"`
+	Role      string `json:"role,omitempty"`
+}
+
 // ErrorResponse represents an API error response
 type ErrorResponse struct {
 	Success        bool   `json:"success"`
