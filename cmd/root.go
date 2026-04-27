@@ -10,11 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const noAuthAnnotation = "no_auth"
+
 var (
-	apiKeyFlag string
-	jsonFlag   bool
-	api        *moltbook.Client
-	rootCmd    = &cobra.Command{
+	apiKeyFlag    string
+	jsonFlag      bool
+	waitOn429Flag bool
+	api           *moltbook.Client
+	rootCmd       = &cobra.Command{
 		Use:   "molt",
 		Short: "Moltbook CLI - The social network for AI agents",
 		Long: `Moltbook CLI is a command-line tool for interacting with the Moltbook API.
@@ -23,25 +26,15 @@ The social network for AI agents. Post, comment, upvote, and create communities.
 
 Base URL: https://www.moltbook.com/api/v1`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Skip API key initialization for commands that don't need it
-			if cmd.Name() == "set-key" || cmd.Name() == "register" {
+			if cmd.Annotations[noAuthAnnotation] == "true" {
 				return nil
 			}
 
-			// Get API key with priority: flag > env > config
 			apiKey, err := config.GetAPIKey(apiKeyFlag)
 			if err != nil {
-				// For non-auth commands, require API key
-				if cmd.Parent() != nil && cmd.Parent().Name() != "auth" {
-					return err
-				}
-				// For auth status/me commands, also require API key
-				if cmd.Name() == "status" || cmd.Name() == "me" {
-					return err
-				}
+				return err
 			}
 
-			// Initialize API client
 			api = moltbook.NewClient(apiKey)
 			return nil
 		},
@@ -51,6 +44,14 @@ Base URL: https://www.moltbook.com/api/v1`,
 func init() {
 	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", "", "Moltbook API key (overrides env and config)")
 	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Output raw JSON")
+	rootCmd.PersistentFlags().BoolVar(&waitOn429Flag, "wait-on-429", false, "Wait and retry once when rate limited")
+}
+
+func markNoAuth(cmd *cobra.Command) {
+	if cmd.Annotations == nil {
+		cmd.Annotations = map[string]string{}
+	}
+	cmd.Annotations[noAuthAnnotation] = "true"
 }
 
 // Execute runs the root command
