@@ -101,23 +101,29 @@ func postGetCmd() *cobra.Command {
 				return err
 			}
 
-			var postResp map[string]any
+			var postResp map[string]json.RawMessage
 			if err := json.Unmarshal(postRaw, &postResp); err != nil {
 				return fmt.Errorf("failed to parse post response: %w", err)
 			}
 
-			var commentsResp map[string]any
+			var commentsResp map[string]json.RawMessage
 			if err := json.Unmarshal(commentsRaw, &commentsResp); err != nil {
 				return fmt.Errorf("failed to parse comments response: %w", err)
 			}
 
-			combined := map[string]any{}
+			combined := map[string]json.RawMessage{}
 			for k, v := range postResp {
 				combined[k] = v
 			}
-			combined["comments"] = commentsResp["comments"]
-			combined["comments_sort"] = commentsResp["sort"]
-			combined["comments_has_more"] = commentsResp["has_more"]
+			if comments, ok := commentsResp["comments"]; ok {
+				combined["comments"] = comments
+			}
+			if sort, ok := commentsResp["sort"]; ok {
+				combined["comments_sort"] = sort
+			}
+			if hasMore, ok := commentsResp["has_more"]; ok {
+				combined["comments_has_more"] = hasMore
+			}
 			if count, ok := commentsResp["count"]; ok {
 				combined["comments_count"] = count
 			}
