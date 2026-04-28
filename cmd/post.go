@@ -169,7 +169,7 @@ func postGetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&withComments, "comments", false, "Include comments in the output")
-	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Sort: best|new|old")
+	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Comment sort when --comments is set: best|new|old")
 	cmd.Flags().IntVar(&commentsLimit, "comments-limit", 35, "Top-level comments per page when --comments is set")
 	cmd.Flags().StringVar(&commentsCursor, "comments-cursor", "", "Comment pagination cursor when --comments is set")
 	return cmd
