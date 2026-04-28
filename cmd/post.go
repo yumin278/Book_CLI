@@ -80,10 +80,9 @@ func postGetCmd() *cobra.Command {
 				return runAPI("GET", "/posts/"+args[0], nil, nil)
 			}
 
-			ctx, cancel := requestContext()
-			defer cancel()
-
-			postRaw, _, err := api.DoJSON(ctx, "GET", "/posts/"+args[0], nil, nil, nil, waitOn429Flag)
+			postCtx, postCancel := requestContext()
+			postRaw, _, err := api.DoJSON(postCtx, "GET", "/posts/"+args[0], nil, nil, nil, waitOn429Flag)
+			postCancel()
 			if err != nil {
 				return err
 			}
@@ -95,7 +94,9 @@ func postGetCmd() *cobra.Command {
 				q.Set("cursor", commentsCursor)
 			}
 
-			commentsRaw, _, err := api.DoJSON(ctx, "GET", "/posts/"+args[0]+"/comments", q, nil, nil, waitOn429Flag)
+			commentsCtx, commentsCancel := requestContext()
+			commentsRaw, _, err := api.DoJSON(commentsCtx, "GET", "/posts/"+args[0]+"/comments", q, nil, nil, waitOn429Flag)
+			commentsCancel()
 			if err != nil {
 				return err
 			}
@@ -118,21 +119,17 @@ func postGetCmd() *cobra.Command {
 			combined["comments_sort"] = commentsResp["sort"]
 			combined["comments_has_more"] = commentsResp["has_more"]
 			if count, ok := commentsResp["count"]; ok {
-				combined["comment_count"] = count
+				combined["comments_count"] = count
 			}
 			if nextCursor, ok := commentsResp["next_cursor"]; ok {
 				combined["comments_next_cursor"] = nextCursor
 			}
 
-			out, err := jsonMarshal(combined)
-			if err != nil {
-				return fmt.Errorf("failed to marshal combined response: %w", err)
-			}
-			return printResponse(out)
+			return printValue(combined)
 		},
 	}
 	cmd.Flags().BoolVar(&withComments, "comments", false, "Include comments in the output")
-	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Comment sort: best|new|old")
+	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Sort: best|new|old")
 	cmd.Flags().IntVar(&commentsLimit, "comments-limit", 35, "Top-level comments per page when --comments is set")
 	cmd.Flags().StringVar(&commentsCursor, "comments-cursor", "", "Comment pagination cursor when --comments is set")
 	return cmd
