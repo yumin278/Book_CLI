@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -66,14 +67,74 @@ func postCreateCmd() *cobra.Command {
 }
 
 func postGetCmd() *cobra.Command {
+	var withComments bool
+	var commentsSort, commentsCursor string
+	var commentsLimit int
+
 	cmd := &cobra.Command{
 		Use:   "get POST_ID",
 		Short: "Get a single post",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/posts/"+args[0], nil, nil)
+			if !withComments {
+				return runAPI("GET", "/posts/"+args[0], nil, nil)
+			}
+
+			ctx, cancel := requestContext()
+			defer cancel()
+
+			postRaw, _, err := api.DoJSON(ctx, "GET", "/posts/"+args[0], nil, nil, nil, waitOn429Flag)
+			if err != nil {
+				return err
+			}
+
+			q := url.Values{}
+			q.Set("sort", commentsSort)
+			q.Set("limit", fmt.Sprintf("%d", commentsLimit))
+			if commentsCursor != "" {
+				q.Set("cursor", commentsCursor)
+			}
+
+			commentsRaw, _, err := api.DoJSON(ctx, "GET", "/posts/"+args[0]+"/comments", q, nil, nil, waitOn429Flag)
+			if err != nil {
+				return err
+			}
+
+			var postResp map[string]any
+			if err := json.Unmarshal(postRaw, &postResp); err != nil {
+				return fmt.Errorf("failed to parse post response: %w", err)
+			}
+
+			var commentsResp map[string]any
+			if err := json.Unmarshal(commentsRaw, &commentsResp); err != nil {
+				return fmt.Errorf("failed to parse comments response: %w", err)
+			}
+
+			combined := map[string]any{}
+			for k, v := range postResp {
+				combined[k] = v
+			}
+			combined["comments"] = commentsResp["comments"]
+			combined["comments_sort"] = commentsResp["sort"]
+			combined["comments_has_more"] = commentsResp["has_more"]
+			if count, ok := commentsResp["count"]; ok {
+				combined["comment_count"] = count
+			}
+			if nextCursor, ok := commentsResp["next_cursor"]; ok {
+				combined["comments_next_cursor"] = nextCursor
+			}
+
+			out, err := jsonMarshal(combined)
+			if err != nil {
+				return fmt.Errorf("failed to marshal combined response: %w", err)
+			}
+			return printResponse(out)
 		},
 	}
+	cmd.Flags().BoolVar(&withComments, "comments", false, "Include comments in the output")
+	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Comment sort: best|new|old")
+	cmd.Flags().IntVar(&commentsLimit, "comments-limit", 35, "Top-level comments per page when --comments is set")
+	cmd.Flags().StringVar(&commentsCursor, "comments-cursor", "", "Comment pagination cursor when --comments is set")
 	return cmd
 }
 
