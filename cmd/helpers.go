@@ -26,13 +26,25 @@ func printResponse(raw []byte) error {
 		return nil
 	}
 
-	pretty, err := json.MarshalIndent(parsed, "", "  ")
+	return printValue(parsed)
+}
+
+func printValue(v any) error {
+	var (
+		out []byte
+		err error
+	)
+
+	if jsonFlag {
+		out, err = json.Marshal(v)
+	} else {
+		out, err = json.MarshalIndent(v, "", "  ")
+	}
 	if err != nil {
-		fmt.Println(string(raw))
-		return nil
+		return err
 	}
 
-	fmt.Println(string(pretty))
+	fmt.Println(string(out))
 	return nil
 }
 
