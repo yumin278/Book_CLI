@@ -101,17 +101,51 @@ func postGetCmd() *cobra.Command {
 				return err
 			}
 
-			var postResp map[string]json.RawMessage
+			if jsonFlag {
+				var postResp map[string]json.RawMessage
+				if err := json.Unmarshal(postRaw, &postResp); err != nil {
+					return fmt.Errorf("failed to parse post response: %w", err)
+				}
+
+				var commentsResp map[string]json.RawMessage
+				if err := json.Unmarshal(commentsRaw, &commentsResp); err != nil {
+					return fmt.Errorf("failed to parse comments response: %w", err)
+				}
+
+				combined := map[string]json.RawMessage{}
+				for k, v := range postResp {
+					combined[k] = v
+				}
+				if comments, ok := commentsResp["comments"]; ok {
+					combined["comments"] = comments
+				}
+				if sort, ok := commentsResp["sort"]; ok {
+					combined["comments_sort"] = sort
+				}
+				if hasMore, ok := commentsResp["has_more"]; ok {
+					combined["comments_has_more"] = hasMore
+				}
+				if count, ok := commentsResp["count"]; ok {
+					combined["comments_count"] = count
+				}
+				if nextCursor, ok := commentsResp["next_cursor"]; ok {
+					combined["comments_next_cursor"] = nextCursor
+				}
+
+				return printValue(combined)
+			}
+
+			var postResp map[string]any
 			if err := json.Unmarshal(postRaw, &postResp); err != nil {
 				return fmt.Errorf("failed to parse post response: %w", err)
 			}
 
-			var commentsResp map[string]json.RawMessage
+			var commentsResp map[string]any
 			if err := json.Unmarshal(commentsRaw, &commentsResp); err != nil {
 				return fmt.Errorf("failed to parse comments response: %w", err)
 			}
 
-			combined := map[string]json.RawMessage{}
+			combined := map[string]any{}
 			for k, v := range postResp {
 				combined[k] = v
 			}
