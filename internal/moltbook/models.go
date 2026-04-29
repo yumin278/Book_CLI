@@ -15,6 +15,20 @@ type CommentCreateReq struct {
 	ParentID string `json:"parent_id,omitempty"`
 }
 
+type DMRequestReq struct {
+	To      string `json:"to"`
+	Message string `json:"message"`
+}
+
+type DMRejectReq struct {
+	Block bool `json:"block,omitempty"`
+}
+
+type DMSendReq struct {
+	Message         string `json:"message"`
+	NeedsHumanInput bool   `json:"needs_human_input,omitempty"`
+}
+
 // VerifyReq submits a verification challenge answer
 type VerifyReq struct {
 	VerificationCode string `json:"verification_code"`
