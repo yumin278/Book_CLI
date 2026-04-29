@@ -19,6 +19,7 @@ func init() {
 	rootCmd.AddCommand(postCmd)
 
 	postCmd.AddCommand(postCreateCmd())
+	postCmd.AddCommand(postCommentsCmd())
 	postCmd.AddCommand(postGetCmd())
 	postCmd.AddCommand(postDeleteCmd())
 	postCmd.AddCommand(postListCmd())
@@ -184,6 +185,30 @@ func postDeleteCmd() *cobra.Command {
 			return runAPI("DELETE", "/posts/"+args[0], nil, nil)
 		},
 	}
+	return cmd
+}
+
+func postCommentsCmd() *cobra.Command {
+	var sort, cursor string
+	var limit int
+	cmd := &cobra.Command{
+		Use:     "comments POST_ID",
+		Aliases: []string{"comment-list"},
+		Short:   "List comments on a post (alias of `molt comment list`)",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			q := url.Values{}
+			q.Set("sort", sort)
+			q.Set("limit", fmt.Sprintf("%d", limit))
+			if cursor != "" {
+				q.Set("cursor", cursor)
+			}
+			return runAPI("GET", "/posts/"+args[0]+"/comments", q, nil)
+		},
+	}
+	cmd.Flags().StringVar(&sort, "sort", "best", "Sort: best|new|old")
+	cmd.Flags().IntVar(&limit, "limit", 35, "Top-level comments per page")
+	cmd.Flags().StringVar(&cursor, "cursor", "", "Pagination cursor")
 	return cmd
 }
 
