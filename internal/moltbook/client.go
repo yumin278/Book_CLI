@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"molt/internal/logger"
 )
 
 const (
@@ -38,6 +40,8 @@ func NewClient(apiKey string) *Client {
 // DoJSON performs an HTTP request and handles JSON response
 // Returns: raw response bytes, status code, error
 func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, body interface{}, out interface{}, waitOn429 bool) ([]byte, int, error) {
+	logger.SetAPICalled()
+
 	// Build URL
 	fullURL := c.BaseURL + path
 	if query != nil && len(query) > 0 {
@@ -71,6 +75,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	// Execute request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
+		logger.SetAPIFailed()
 		return nil, 0, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -118,6 +123,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 
 	// Handle error responses
 	if resp.StatusCode >= 400 {
+		logger.SetAPIFailed()
 		var errResp ErrorResponse
 		if err := json.Unmarshal(rawResp, &errResp); err == nil && errResp.Error != "" {
 			errMsg := errResp.Error

@@ -7,6 +7,14 @@ import (
 	"path/filepath"
 )
 
+// LocalConfig holds configuration from the executable's directory
+type LocalConfig struct {
+	APIKey           string `json:"api_key"`
+	LogDir           string `json:"log_dir"`
+	EnableSuccessLog bool   `json:"enable_success_log"`
+	EnableErrorLog   bool   `json:"enable_error_log"`
+}
+
 // Credentials holds the API key and agent name
 type Credentials struct {
 	APIKey    string `json:"api_key"`
@@ -63,8 +71,38 @@ func SaveCredentials(creds *Credentials) error {
 	return nil
 }
 
-// GetAPIKey returns the API key with priority: flag > env > config file
+// LoadLocalConfig loads configuration from config.json in the executable's directory
+func LoadLocalConfig() (*LocalConfig, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	path := filepath.Join(filepath.Dir(exePath), "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // Not found is acceptable
+		}
+		return nil, fmt.Errorf("failed to read local config: %w", err)
+	}
+
+	var config LocalConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse local config: %w", err)
+	}
+
+	return &config, nil
+}
+
+// GetAPIKey returns the API key with priority: local config > flag > env > global config file
 func GetAPIKey(flagKey string) (string, error) {
+	// Priority 0: Local config in program directory
+	localConfig, _ := LoadLocalConfig()
+	if localConfig != nil && localConfig.APIKey != "" {
+		return localConfig.APIKey, nil
+	}
+
 	// Priority 1: Command line flag
 	if flagKey != "" {
 		return flagKey, nil
@@ -75,7 +113,7 @@ func GetAPIKey(flagKey string) (string, error) {
 		return envKey, nil
 	}
 
-	// Priority 3: Config file
+	// Priority 3: Global config file
 	creds, err := LoadCredentials()
 	if err != nil {
 		return "", fmt.Errorf("failed to load credentials: %w", err)
