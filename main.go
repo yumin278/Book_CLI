@@ -26,7 +26,7 @@ func main() {
 	}
 
 	// Execute command
-	cmd.Execute()
+	execErr := cmd.Execute()
 
 	// Stop capture and finalize logs
 	if stopCapture != nil {
@@ -35,5 +35,9 @@ func main() {
 
 	if err := logger.Finalize(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error finalizing logs: %v\n", err)
+	}
+
+	if execErr != nil {
+		os.Exit(1)
 	}
 }
