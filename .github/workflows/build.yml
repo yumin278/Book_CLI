@@ -2,7 +2,7 @@ name: Build Linux Binary
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ 'main' ]
 
 jobs:
   build:
