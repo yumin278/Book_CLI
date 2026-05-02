@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"molt/internal/config"
 	"molt/internal/moltbook"
 
@@ -55,9 +52,6 @@ func markNoAuth(cmd *cobra.Command) {
 }
 
 // Execute runs the root command
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+func Execute() error {
+	return rootCmd.Execute()
 }
