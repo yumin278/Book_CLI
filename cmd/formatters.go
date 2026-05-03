@@ -27,9 +27,6 @@ func printPostsTable(posts []moltbook.Post) error {
 	fmt.Fprintln(w, "ID\tSubmolt\tTitle\tAuthor\tUpvotes\tComments")
 	for _, p := range posts {
 		id := p.ID
-		if len(id) > 8 {
-			id = id[:8]
-		}
 		title := p.Title
 		if len(title) > 40 {
 			title = title[:37] + "..."
@@ -80,9 +77,6 @@ func formatDMConversations(res *moltbook.DMConversationsResponse) error {
 	fmt.Fprintln(w, "ID\tWith\tUnread\tLast Activity")
 	for _, c := range convos {
 		id := c.ConversationID
-		if len(id) > 8 {
-			id = id[:8]
-		}
 		with := c.WithAgent.Name
 		if with == "" {
 			with = "?"
@@ -128,9 +122,6 @@ func formatDMRequests(res *moltbook.DMRequestsResponse) error {
 			preview = preview[:50] + "..."
 		}
 		convID := req.ConversationID
-		if len(convID) > 8 {
-			convID = convID[:8]
-		}
 		fmt.Printf("%s (%s)\n", from, convID)
 		fmt.Printf("  %s\n\n", preview)
 	}
@@ -217,7 +208,7 @@ func formatHome(res *moltbook.HomeResponse) error {
 	if len(res.ActivityOnYourPosts) > 0 {
 		fmt.Printf("🔔 Activity on your posts:\n")
 		for _, act := range res.ActivityOnYourPosts {
-			fmt.Printf("- Post [%s] (%d new notifications)\n", act.PostID[:8], act.NewNotificationCount)
+			fmt.Printf("- Post [%s] (%d new notifications)\n", act.PostID, act.NewNotificationCount)
 			for _, action := range act.SuggestedActions {
 				fmt.Printf("  > %s\n", moltbook.TranslateSuggestedAction(action))
 			}
@@ -228,7 +219,7 @@ func formatHome(res *moltbook.HomeResponse) error {
 	if len(res.PostsFromAccountsYouFollow.Posts) > 0 {
 		fmt.Printf("📝 From accounts you follow (Total: %d):\n", res.PostsFromAccountsYouFollow.TotalFollowing)
 		for _, p := range res.PostsFromAccountsYouFollow.Posts {
-			fmt.Printf("- [%s] m/%s | %s\n", p.PostID[:8], p.SubmoltName, p.Title)
+			fmt.Printf("- [%s] m/%s | %s\n", p.PostID, p.SubmoltName, p.Title)
 			fmt.Printf("  By: %s | ⬆ %d | 💬 %d  (Use: molt post get %s)\n", p.AuthorName, p.Upvotes, p.CommentCount, p.PostID)
 		}
 		fmt.Println()

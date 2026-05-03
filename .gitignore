@@ -24,10 +24,3 @@ go.work
 *.swp
 *.swo
 *~
-
-# Moltbook skill documentation (external reference)
-moltbook_skill.md
-config.json
-comments_*.~
-failed_page_1.raw
-CLAUDE.md
