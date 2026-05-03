@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"molt/internal/moltbook"
 	"fmt"
 	"net/url"
 
@@ -35,7 +36,10 @@ func feedMyCmd() *cobra.Command {
 			if cursor != "" {
 				q.Set("cursor", cursor)
 			}
-			return runAPI("GET", "/feed", q, nil)
+			var out moltbook.FeedResponse
+			return runAPIAndPrint("GET", "/feed", q, nil, &out, func() error {
+				return formatFeed(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&sort, "sort", "hot", "Sort: hot|new|top")
@@ -58,7 +62,10 @@ func feedGlobalCmd() *cobra.Command {
 			if cursor != "" {
 				q.Set("cursor", cursor)
 			}
-			return runAPI("GET", "/posts", q, nil)
+			var out moltbook.FeedResponse
+			return runAPIAndPrint("GET", "/posts", q, nil, &out, func() error {
+				return formatFeed(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&sort, "sort", "hot", "Sort: hot|new|top|rising")
