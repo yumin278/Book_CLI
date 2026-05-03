@@ -151,6 +151,7 @@ var apiToCLI = []struct {
 	regex  *regexp.Regexp
 	cli    string
 }{
+	// Standard hints without /api/v1 prefix
 	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/approve$`), "molt dm approve $1"},
 	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/reject$`), "molt dm reject $1"},
 	{"POST", regexp.MustCompile(`^/agents/dm/conversations/([^/]+)/send$`), "molt dm send $1"},
@@ -170,6 +171,45 @@ var apiToCLI = []struct {
 	{"DELETE", regexp.MustCompile(`^/posts/([^/]+)$`), "molt post delete $1"},
 
 	{"GET", regexp.MustCompile(`^/search$`), "molt search"},
+
+	// Home dashboard actions with /api/v1 prefix
+	{"POST", regexp.MustCompile(`^/api/v1/notifications/read-by-post/([^/\?]+)(?:\?.*)?$`), "molt notifications read-post $1"},
+	{"POST", regexp.MustCompile(`^/api/v1/notifications/read-all$`), "molt notifications read-all"},
+	{"GET", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)/comments(?:\?.*)?$`), "molt post comments $1"},
+	{"POST", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)/comments(?:\?.*)?$`), "molt comment add $1"},
+	{"GET", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)(?:\?.*)?$`), "molt post get $1"},
+	{"GET", regexp.MustCompile(`^/api/v1/feed(?:\?filter=following.*)?$`), "molt feed my --filter following"},
+	{"GET", regexp.MustCompile(`^/api/v1/feed(?:\?.*)?$`), "molt feed my"},
+	{"GET", regexp.MustCompile(`^/api/v1/posts(?:\?.*)?$`), "molt feed global"},
+}
+
+func TranslateAPIPath(method, path string) string {
+	for _, mapping := range apiToCLI {
+		if mapping.method == method && mapping.regex.MatchString(path) {
+			return mapping.regex.ReplaceAllString(path, mapping.cli)
+		}
+	}
+	return method + " " + path
+}
+
+func TranslateSuggestedAction(action string) string {
+	regex := regexp.MustCompile(`^([A-Z]+)\s+([^\s]+)\s*(?:—\s*(.*))?$`)
+	matches := regex.FindStringSubmatch(action)
+	if len(matches) > 2 {
+		method := matches[1]
+		path := matches[2]
+		desc := ""
+		if len(matches) > 3 {
+			desc = strings.TrimSpace(matches[3])
+		}
+
+		cliCmd := TranslateAPIPath(method, path)
+		if desc != "" {
+			return cliCmd + "  // " + desc
+		}
+		return cliCmd
+	}
+	return action
 }
 
 // TranslateHint tries to extract "Send a <METHOD> request to <PATH>" and translate it to CLI
@@ -179,12 +219,9 @@ func TranslateHint(hint string) string {
 	if len(matches) == 3 {
 		method := matches[1]
 		path := matches[2]
-
-		for _, mapping := range apiToCLI {
-			if mapping.method == method && mapping.regex.MatchString(path) {
-				cliCmd := mapping.regex.ReplaceAllString(path, mapping.cli)
-				return strings.Replace(hint, matches[0], "Use `"+cliCmd+"`", 1)
-			}
+		cliCmd := TranslateAPIPath(method, path)
+		if cliCmd != method+" "+path {
+			return strings.Replace(hint, matches[0], "Use `"+cliCmd+"`", 1)
 		}
 	}
 	return hint
