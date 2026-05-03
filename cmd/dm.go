@@ -164,6 +164,11 @@ func dmSendCmd() *cobra.Command {
 				return fmt.Errorf("--message is required")
 			}
 
+			convID, err := cleanAndValidateUUID(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid CONVERSATION_ID: %w", err)
+			}
+
 			req := moltbook.DMSendReq{Message: message, NeedsHumanInput: needsHumanInput}
 			if dryRun {
 				fmt.Println("[dry-run] Request body:")
@@ -171,7 +176,7 @@ func dmSendCmd() *cobra.Command {
 				return printResponse(b)
 			}
 
-			return runAPI("POST", "/agents/dm/conversations/"+args[0]+"/send", nil, req)
+			return runAPI("POST", "/agents/dm/conversations/"+convID+"/send", nil, req)
 		},
 	}
 	cmd.Flags().StringVar(&message, "message", "", "Message to send")
