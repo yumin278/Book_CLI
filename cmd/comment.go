@@ -27,13 +27,29 @@ func commentAddCmd() *cobra.Command {
 			if content == "" {
 				return fmt.Errorf("--content is required")
 			}
+
+			postID, err := cleanAndValidateUUID(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid POST_ID: %w", err)
+			}
+
+			if parentID != "" {
+				cleanedParentID, err := cleanAndValidateUUID(parentID)
+				if err != nil {
+					// As per requirement: if parentID is invalid, proceed without it
+					parentID = ""
+				} else {
+					parentID = cleanedParentID
+				}
+			}
+
 			req := moltbook.CommentCreateReq{Content: content, ParentID: parentID}
 			if dryRun {
 				fmt.Println("[dry-run] Request body:")
 				b, _ := jsonMarshal(req)
 				return printResponse(b)
 			}
-			return runAPI("POST", "/posts/"+args[0]+"/comments", nil, req)
+			return runAPI("POST", "/posts/"+postID+"/comments", nil, req)
 		},
 	}
 	cmd.Flags().StringVar(&content, "content", "", "Comment content")
