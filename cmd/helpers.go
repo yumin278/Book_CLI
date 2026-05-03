@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
+	"unicode"
 )
 
 const requestTimeout = 30 * time.Second
@@ -61,4 +64,24 @@ func runAPI(method, path string, query url.Values, body any) error {
 		return err
 	}
 	return printResponse(raw)
+}
+
+var uuidRegex = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+func cleanAndValidateUUID(id string) (string, error) {
+	original := id
+	cleaned := strings.TrimSpace(id)
+	if len(cleaned) > 0 {
+		runes := []rune(cleaned)
+		lastRune := runes[len(runes)-1]
+		if unicode.IsPunct(lastRune) {
+			cleaned = string(runes[:len(runes)-1])
+		}
+	}
+
+	if uuidRegex.MatchString(cleaned) {
+		return cleaned, nil
+	}
+
+	return cleaned, fmt.Errorf("invalid UUID format. original: %q, cleaned: %q", original, cleaned)
 }
