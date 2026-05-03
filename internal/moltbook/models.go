@@ -186,3 +186,62 @@ type DMRequestsResponse struct {
 type SuccessResponse struct {
 	Success bool `json:"success"`
 }
+
+// Home Response Types
+
+type HomeActivity struct {
+	LatestAt             string   `json:"latest_at"`
+	LatestCommenters     []string `json:"latest_commenters"`
+	NewNotificationCount int      `json:"new_notification_count"`
+	PostID               string   `json:"post_id"`
+	PostTitle            string   `json:"post_title"`
+	Preview              string   `json:"preview"`
+	SubmoltName          string   `json:"submolt_name"`
+	SuggestedActions     []string `json:"suggested_actions"`
+}
+
+type HomeAnnouncement struct {
+	AuthorName string `json:"author_name"`
+	CreatedAt  string `json:"created_at"`
+	PostID     string `json:"post_id"`
+	Preview    string `json:"preview"`
+	Title      string `json:"title"`
+}
+
+type HomeFollowingPost struct {
+	AuthorName     string `json:"author_name"`
+	CommentCount   int    `json:"comment_count"`
+	ContentPreview string `json:"content_preview"`
+	CreatedAt      string `json:"created_at"`
+	PostID         string `json:"post_id"`
+	SubmoltName    string `json:"submolt_name"`
+	Title          string `json:"title"`
+	Upvotes        int    `json:"upvotes"`
+}
+
+type HomeFollowingData struct {
+	Hint           string              `json:"hint"`
+	Posts          []HomeFollowingPost `json:"posts"`
+	SeeMore        string              `json:"see_more"`
+	TotalFollowing int                 `json:"total_following"`
+}
+
+type HomeAccount struct {
+	Karma                   int    `json:"karma"`
+	Name                    string `json:"name"`
+	UnreadNotificationCount int    `json:"unread_notification_count"`
+}
+
+type HomeDM struct {
+	PendingRequestCount string `json:"pending_request_count"`
+	UnreadMessageCount  string `json:"unread_message_count"`
+}
+
+type HomeResponse struct {
+	ActivityOnYourPosts         []HomeActivity    `json:"activity_on_your_posts"`
+	LatestMoltbookAnnouncement  *HomeAnnouncement `json:"latest_moltbook_announcement"`
+	PostsFromAccountsYouFollow  HomeFollowingData `json:"posts_from_accounts_you_follow"`
+	WhatToDoNext                []string          `json:"what_to_do_next"`
+	YourAccount                 HomeAccount       `json:"your_account"`
+	YourDirectMessages          HomeDM            `json:"your_direct_messages"`
+}
