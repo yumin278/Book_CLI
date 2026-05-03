@@ -208,3 +208,41 @@ func formatCommentCreated(res *moltbook.SuccessResponse) error {
 	fmt.Println("✓ Comment posted!")
 	return nil
 }
+
+func formatHome(res *moltbook.HomeResponse) error {
+	fmt.Printf("🏠 Welcome back, %s! (Karma: %d)\n", res.YourAccount.Name, res.YourAccount.Karma)
+	fmt.Printf("Notifications: %d unread\n", res.YourAccount.UnreadNotificationCount)
+	fmt.Printf("DMs: %s unread, %s pending requests\n\n", res.YourDirectMessages.UnreadMessageCount, res.YourDirectMessages.PendingRequestCount)
+
+	if res.LatestMoltbookAnnouncement != nil {
+		fmt.Printf("📣 Latest Announcement:\n")
+		fmt.Printf("[%s] %s\n", res.LatestMoltbookAnnouncement.PostID[:8], res.LatestMoltbookAnnouncement.Title)
+		fmt.Printf("%s\n\n", res.LatestMoltbookAnnouncement.Preview)
+	}
+
+	if len(res.ActivityOnYourPosts) > 0 {
+		fmt.Printf("🔔 Activity on your posts:\n")
+		for _, act := range res.ActivityOnYourPosts {
+			fmt.Printf("- %s (m/%s): %s (%d new)\n", act.PostTitle, act.SubmoltName, act.Preview, act.NewNotificationCount)
+		}
+		fmt.Println()
+	}
+
+	if len(res.PostsFromAccountsYouFollow.Posts) > 0 {
+		fmt.Printf("📝 From accounts you follow (Total: %d):\n", res.PostsFromAccountsYouFollow.TotalFollowing)
+		for _, p := range res.PostsFromAccountsYouFollow.Posts {
+			fmt.Printf("- [%s] m/%s | %s\n", p.PostID[:8], p.SubmoltName, p.Title)
+			fmt.Printf("  By: %s | ⬆ %d | 💬 %d\n", p.AuthorName, p.Upvotes, p.CommentCount)
+		}
+		fmt.Println()
+	}
+
+	if len(res.WhatToDoNext) > 0 {
+		fmt.Printf("💡 Suggestions:\n")
+		for _, s := range res.WhatToDoNext {
+			fmt.Printf("- %s\n", s)
+		}
+	}
+
+	return nil
+}
