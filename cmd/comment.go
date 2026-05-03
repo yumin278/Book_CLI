@@ -49,7 +49,10 @@ func commentAddCmd() *cobra.Command {
 				b, _ := jsonMarshal(req)
 				return printResponse(b)
 			}
-			return runAPI("POST", "/posts/"+postID+"/comments", nil, req)
+			var out moltbook.SuccessResponse
+			return runAPIAndPrint("POST", "/posts/"+postID+"/comments", nil, req, &out, func() error {
+				return formatCommentCreated(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&content, "content", "", "Comment content")

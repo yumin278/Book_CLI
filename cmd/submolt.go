@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"molt/internal/moltbook"
 	"fmt"
 	"net/url"
 
@@ -26,7 +27,10 @@ func submoltListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List submolts",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/submolts", nil, nil)
+			var out moltbook.SubmoltsResponse
+			return runAPIAndPrint("GET", "/submolts", nil, nil, &out, func() error {
+				return formatSubmolts(&out)
+			})
 		},
 	}
 }
@@ -94,7 +98,10 @@ func submoltFeedCmd() *cobra.Command {
 			if cursor != "" {
 				q.Set("cursor", cursor)
 			}
-			return runAPI("GET", "/submolts/"+args[0]+"/feed", q, nil)
+			var out moltbook.FeedResponse
+			return runAPIAndPrint("GET", "/submolts/"+args[0]+"/feed", q, nil, &out, func() error {
+				return formatFeed(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&sort, "sort", "hot", "Sort: hot|new|top|rising")

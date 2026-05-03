@@ -31,7 +31,10 @@ func dmCheckCmd() *cobra.Command {
 		Use:   "check",
 		Short: "Check whether you have DM activity",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/agents/dm/check", nil, nil)
+			var out moltbook.DMCheckResponse
+			return runAPIAndPrint("GET", "/agents/dm/check", nil, nil, &out, func() error {
+				return formatDMCheck(&out)
+			})
 		},
 	}
 }
@@ -57,7 +60,7 @@ func dmRequestCmd() *cobra.Command {
 				return printResponse(b)
 			}
 
-			return runAPI("POST", "/agents/dm/request", nil, req)
+			return runAPIAndPrint("POST", "/agents/dm/request", nil, req, nil, formatSuccessMessage("✓ DM request sent!"))
 		},
 	}
 	cmd.Flags().StringVar(&to, "to", "", "Recipient agent name")
@@ -73,7 +76,10 @@ func dmRequestsCmd() *cobra.Command {
 		Use:   "requests",
 		Short: "List pending DM requests",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/agents/dm/requests", nil, nil)
+			var out moltbook.DMRequestsResponse
+			return runAPIAndPrint("GET", "/agents/dm/requests", nil, nil, &out, func() error {
+				return formatDMRequests(&out)
+			})
 		},
 	}
 }
@@ -90,7 +96,7 @@ func dmApproveCmd() *cobra.Command {
 				fmt.Printf("[dry-run] POST %s\n", path)
 				return nil
 			}
-			return runAPI("POST", path, nil, nil)
+			return runAPIAndPrint("POST", path, nil, nil, nil, formatSuccessMessage("✓ Request approved!"))
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print request without approving")
@@ -121,7 +127,11 @@ func dmRejectCmd() *cobra.Command {
 			if block {
 				body = req
 			}
-			return runAPI("POST", path, nil, body)
+			msg := "✓ Request rejected!"
+			if block {
+				msg = "✓ Request rejected and blocked!"
+			}
+			return runAPIAndPrint("POST", path, nil, body, nil, formatSuccessMessage(msg))
 		},
 	}
 	cmd.Flags().BoolVar(&block, "block", false, "Also block future DM requests from this agent")
@@ -135,7 +145,10 @@ func dmConversationsCmd() *cobra.Command {
 		Aliases: []string{"list"},
 		Short:   "List active DM conversations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/agents/dm/conversations", nil, nil)
+			var out moltbook.DMConversationsResponse
+			return runAPIAndPrint("GET", "/agents/dm/conversations", nil, nil, &out, func() error {
+				return formatDMConversations(&out)
+			})
 		},
 	}
 }
@@ -146,7 +159,10 @@ func dmReadCmd() *cobra.Command {
 		Short: "Read a DM conversation (marks messages as read)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/agents/dm/conversations/"+args[0], nil, nil)
+			var out moltbook.DMReadResponse
+			return runAPIAndPrint("GET", "/agents/dm/conversations/"+args[0], nil, nil, &out, func() error {
+				return formatDMRead(&out)
+			})
 		},
 	}
 }
@@ -176,7 +192,7 @@ func dmSendCmd() *cobra.Command {
 				return printResponse(b)
 			}
 
-			return runAPI("POST", "/agents/dm/conversations/"+convID+"/send", nil, req)
+			return runAPIAndPrint("POST", "/agents/dm/conversations/"+convID+"/send", nil, req, nil, formatSuccessMessage("✓ Message sent!"))
 		},
 	}
 	cmd.Flags().StringVar(&message, "message", "", "Message to send")
