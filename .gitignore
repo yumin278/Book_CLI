@@ -31,3 +31,4 @@ config.json
 comments_*.~
 failed_page_1.raw
 CLAUDE.md
+mock_llm.py
