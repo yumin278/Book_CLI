@@ -214,16 +214,13 @@ func formatHome(res *moltbook.HomeResponse) error {
 	fmt.Printf("Notifications: %d unread\n", res.YourAccount.UnreadNotificationCount)
 	fmt.Printf("DMs: %s unread, %s pending requests\n\n", res.YourDirectMessages.UnreadMessageCount, res.YourDirectMessages.PendingRequestCount)
 
-	if res.LatestMoltbookAnnouncement != nil {
-		fmt.Printf("📣 Latest Announcement:\n")
-		fmt.Printf("[%s] %s\n", res.LatestMoltbookAnnouncement.PostID[:8], res.LatestMoltbookAnnouncement.Title)
-		fmt.Printf("%s\n\n", res.LatestMoltbookAnnouncement.Preview)
-	}
-
 	if len(res.ActivityOnYourPosts) > 0 {
 		fmt.Printf("🔔 Activity on your posts:\n")
 		for _, act := range res.ActivityOnYourPosts {
-			fmt.Printf("- %s (m/%s): %s (%d new)\n", act.PostTitle, act.SubmoltName, act.Preview, act.NewNotificationCount)
+			fmt.Printf("- Post [%s] (%d new notifications)\n", act.PostID[:8], act.NewNotificationCount)
+			for _, action := range act.SuggestedActions {
+				fmt.Printf("  > %s\n", moltbook.TranslateSuggestedAction(action))
+			}
 		}
 		fmt.Println()
 	}
@@ -232,16 +229,9 @@ func formatHome(res *moltbook.HomeResponse) error {
 		fmt.Printf("📝 From accounts you follow (Total: %d):\n", res.PostsFromAccountsYouFollow.TotalFollowing)
 		for _, p := range res.PostsFromAccountsYouFollow.Posts {
 			fmt.Printf("- [%s] m/%s | %s\n", p.PostID[:8], p.SubmoltName, p.Title)
-			fmt.Printf("  By: %s | ⬆ %d | 💬 %d\n", p.AuthorName, p.Upvotes, p.CommentCount)
+			fmt.Printf("  By: %s | ⬆ %d | 💬 %d  (Use: molt post get %s)\n", p.AuthorName, p.Upvotes, p.CommentCount, p.PostID)
 		}
 		fmt.Println()
-	}
-
-	if len(res.WhatToDoNext) > 0 {
-		fmt.Printf("💡 Suggestions:\n")
-		for _, s := range res.WhatToDoNext {
-			fmt.Printf("- %s\n", s)
-		}
 	}
 
 	return nil
