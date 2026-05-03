@@ -96,3 +96,24 @@ func cleanAndValidateUUID(id string) (string, error) {
 
 	return cleaned, fmt.Errorf("invalid UUID format. original: %q, cleaned: %q", original, cleaned)
 }
+
+// runAPIAndPrint executes the API, parses JSON into `out` interface, and calls formatFunc to print text if not using --json.
+func runAPIAndPrint(method, path string, query url.Values, body any, out any, formatFunc func() error) error {
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	raw, _, err := api.DoJSON(ctx, method, path, query, body, out, waitOn429Flag)
+	if err != nil {
+		return err
+	}
+
+	if jsonFlag {
+		return printResponse(raw)
+	}
+
+	if formatFunc != nil {
+		return formatFunc()
+	}
+
+	return printResponse(raw)
+}

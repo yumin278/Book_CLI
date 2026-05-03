@@ -55,7 +55,10 @@ func postCreateCmd() *cobra.Command {
 				return printResponse(b)
 			}
 
-			return runAPI("POST", "/posts", nil, req)
+			var out moltbook.PostResponse
+			return runAPIAndPrint("POST", "/posts", nil, req, &out, func() error {
+				return formatPostCreated(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&submolt, "submolt", "general", "Submolt name")
@@ -78,7 +81,10 @@ func postGetCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !withComments {
-				return runAPI("GET", "/posts/"+args[0], nil, nil)
+				var out moltbook.PostResponse
+				return runAPIAndPrint("GET", "/posts/"+args[0], nil, nil, &out, func() error {
+					return formatPost(&out)
+				})
 			}
 
 			postCtx, postCancel := requestContext()
@@ -229,7 +235,10 @@ func postListCmd() *cobra.Command {
 				q.Set("cursor", cursor)
 			}
 
-			return runAPI("GET", "/posts", q, nil)
+			var out moltbook.FeedResponse
+			return runAPIAndPrint("GET", "/posts", q, nil, &out, func() error {
+				return formatFeed(&out)
+			})
 		},
 	}
 	cmd.Flags().StringVar(&submolt, "submolt", "", "Submolt name (optional)")
