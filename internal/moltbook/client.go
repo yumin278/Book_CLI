@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"molt/internal/logger"
@@ -114,9 +116,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 					errMsg += fmt.Sprintf(" (retry after %d seconds)", retryAfter)
 				}
 			}
-			if errResp.DailyRemaining >= 0 {
-				errMsg += fmt.Sprintf(" [daily remaining: %d]", errResp.DailyRemaining)
-			}
+			errMsg += " (Consider using --wait-on-429 to automatically wait and retry)"
 			return rawResp, resp.StatusCode, fmt.Errorf("rate limit: %s", errMsg)
 		}
 	}
@@ -128,7 +128,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 		if err := json.Unmarshal(rawResp, &errResp); err == nil && errResp.Error != "" {
 			errMsg := errResp.Error
 			if errResp.Hint != "" {
-				errMsg += " (hint: " + errResp.Hint + ")"
+				errMsg += " (hint: " + TranslateHint(errResp.Hint) + ")"
 			}
 			return rawResp, resp.StatusCode, fmt.Errorf("API error (%d): %s", resp.StatusCode, errMsg)
 		}
@@ -143,4 +143,49 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	}
 
 	return rawResp, resp.StatusCode, nil
+}
+
+
+var apiToCLI = []struct {
+	method string
+	regex  *regexp.Regexp
+	cli    string
+}{
+	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/approve$`), "molt dm approve $1"},
+	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/reject$`), "molt dm reject $1"},
+	{"POST", regexp.MustCompile(`^/agents/dm/conversations/([^/]+)/send$`), "molt dm send $1"},
+	{"POST", regexp.MustCompile(`^/agents/dm/request$`), "molt dm request"},
+	{"GET", regexp.MustCompile(`^/agents/dm/conversations/([^/]+)$`), "molt dm read $1"},
+	{"GET", regexp.MustCompile(`^/agents/dm/conversations$`), "molt dm conversations"},
+	{"GET", regexp.MustCompile(`^/agents/dm/requests$`), "molt dm requests"},
+	{"GET", regexp.MustCompile(`^/agents/dm/check$`), "molt dm check"},
+
+	{"POST", regexp.MustCompile(`^/posts/([^/]+)/comments$`), "molt comment add $1"},
+	{"POST", regexp.MustCompile(`^/posts/([^/]+)/upvote$`), "molt vote post-up $1"},
+	{"POST", regexp.MustCompile(`^/posts/([^/]+)/downvote$`), "molt vote post-down $1"},
+	{"POST", regexp.MustCompile(`^/comments/([^/]+)/upvote$`), "molt vote comment-up $1"},
+
+	{"POST", regexp.MustCompile(`^/posts$`), "molt post create"},
+	{"GET", regexp.MustCompile(`^/posts/([^/]+)$`), "molt post get $1"},
+	{"DELETE", regexp.MustCompile(`^/posts/([^/]+)$`), "molt post delete $1"},
+
+	{"GET", regexp.MustCompile(`^/search$`), "molt search"},
+}
+
+// TranslateHint tries to extract "Send a <METHOD> request to <PATH>" and translate it to CLI
+func TranslateHint(hint string) string {
+	hintRegex := regexp.MustCompile(`Send a ([A-Z]+) request to (/[^\s]+)`)
+	matches := hintRegex.FindStringSubmatch(hint)
+	if len(matches) == 3 {
+		method := matches[1]
+		path := matches[2]
+
+		for _, mapping := range apiToCLI {
+			if mapping.method == method && mapping.regex.MatchString(path) {
+				cliCmd := mapping.regex.ReplaceAllString(path, mapping.cli)
+				return strings.Replace(hint, matches[0], "Use `"+cliCmd+"`", 1)
+			}
+		}
+	}
+	return hint
 }

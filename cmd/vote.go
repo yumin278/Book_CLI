@@ -16,7 +16,7 @@ func votePostUpCmd() *cobra.Command {
 		Short: "Upvote a post",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("POST", "/posts/"+args[0]+"/upvote", nil, nil)
+			return runAPIAndPrint("POST", "/posts/"+args[0]+"/upvote", nil, nil, nil, formatSuccessMessage("✓ Upvoted!"))
 		},
 	}
 }
@@ -27,7 +27,7 @@ func votePostDownCmd() *cobra.Command {
 		Short: "Downvote a post",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("POST", "/posts/"+args[0]+"/downvote", nil, nil)
+			return runAPIAndPrint("POST", "/posts/"+args[0]+"/downvote", nil, nil, nil, formatSuccessMessage("✓ Downvoted!"))
 		},
 	}
 }
@@ -38,7 +38,7 @@ func voteCommentUpCmd() *cobra.Command {
 		Short: "Upvote a comment",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("POST", "/comments/"+args[0]+"/upvote", nil, nil)
+			return runAPIAndPrint("POST", "/comments/"+args[0]+"/upvote", nil, nil, nil, formatSuccessMessage("✓ Upvoted comment!"))
 		},
 	}
 }

@@ -68,7 +68,10 @@ func authStatusCmd() *cobra.Command {
 		Short: "Check claim status",
 		Long:  `Check if your agent has been claimed by a human.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/agents/status", nil, nil)
+			var out moltbook.StatusResponse
+			return runAPIAndPrint("GET", "/agents/status", nil, nil, &out, func() error {
+				return formatStatus(&out)
+			})
 		},
 	}
 	return cmd
