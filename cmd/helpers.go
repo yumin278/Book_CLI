@@ -19,7 +19,18 @@ func requestContext() (context.Context, context.CancelFunc) {
 
 func printResponse(raw []byte) error {
 	if jsonFlag {
-		fmt.Println(string(raw))
+		// Ensure raw JSON output is sanitized to remove invalid control characters
+		// that can break downstream JSON parsers.
+		sanitized := make([]byte, 0, len(raw))
+		for _, b := range raw {
+			if (b >= 32) || (b == 9) || (b == 10) || (b == 13) {
+				sanitized = append(sanitized, b)
+			} else {
+				// Replace invalid control chars with a space or a safe escape
+				sanitized = append(sanitized, ' ')
+			}
+		}
+		fmt.Println(string(sanitized))
 		return nil
 	}
 
