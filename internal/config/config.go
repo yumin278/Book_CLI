@@ -13,6 +13,10 @@ type LocalConfig struct {
 	LogDir           string `json:"log_dir"`
 	EnableSuccessLog bool   `json:"enable_success_log"`
 	EnableErrorLog   bool   `json:"enable_error_log"`
+	CognitiveRoot    string `json:"cognitive_root,omitempty"`
+	LLMEndpoint      string `json:"llm_endpoint,omitempty"`
+	LLMModel         string `json:"llm_model,omitempty"`
+	LLMAPIKey        string `json:"llm_api_key,omitempty"`
 }
 
 // Credentials holds the API key and agent name
