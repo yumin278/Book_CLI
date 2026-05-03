@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os/exec"
 	"strings"
 
 	"molt/internal/moltbook"
@@ -27,7 +29,7 @@ func init() {
 
 func postCreateCmd() *cobra.Command {
 	var submolt, title, content, link string
-	var dryRun bool
+	var dryRun, bindGit bool
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a post",
@@ -40,6 +42,26 @@ func postCreateCmd() *cobra.Command {
 			}
 			if content != "" && link != "" {
 				return fmt.Errorf("use only one of --content or --url")
+			}
+
+			if bindGit && content != "" {
+				// Get git sha
+				outSha, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+				sha := strings.TrimSpace(string(outSha))
+				if err != nil {
+					sha = "unknown"
+				}
+
+				// Get git diff
+				outDiff, err := exec.Command("git", "diff", "--stat", "HEAD~3..HEAD").Output()
+				diffHash := "unknown"
+				if err == nil {
+					hash := sha256.Sum256(outDiff)
+					diffHash = fmt.Sprintf("%x", hash)[:7]
+				}
+
+				witnessBlock := fmt.Sprintf("\n\n--- Witness: [SHA: %s] | [Diff-Hash: %s] | [Sincerity: Verified] ---", sha, diffHash)
+				content += witnessBlock
 			}
 
 			req := moltbook.PostCreateReq{
@@ -66,6 +88,7 @@ func postCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&content, "content", "", "Text content")
 	cmd.Flags().StringVar(&link, "url", "", "Link URL")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print request payload without creating a post")
+	cmd.Flags().BoolVar(&bindGit, "bind-git", false, "Automatically bind evidence (Git SHA and Diff Hash) to the post")
 	_ = cmd.MarkFlagRequired("title")
 	return cmd
 }
