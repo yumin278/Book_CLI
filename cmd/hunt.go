@@ -93,7 +93,17 @@ func init() {
 			}
 			reqBytes, _ := json.Marshal(reqBody)
 
-			resp, err := http.Post(localCfg.LLMEndpoint, "application/json", bytes.NewReader(reqBytes))
+			req, err := http.NewRequest("POST", localCfg.LLMEndpoint, bytes.NewReader(reqBytes))
+			if err != nil {
+				return fmt.Errorf("failed to create request: %w", err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			if localCfg.LLMAPIKey != "" {
+				req.Header.Set("Authorization", "Bearer "+localCfg.LLMAPIKey)
+			}
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
 			if err != nil {
 				return fmt.Errorf("failed to contact LLM endpoint: %w", err)
 			}
