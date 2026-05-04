@@ -3,10 +3,26 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"molt/internal/moltbook"
 )
+
+func truncateRunes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	if max <= 3 {
+		return string(r[:max])
+	}
+	return string(r[:max-3]) + "..."
+}
 
 func formatStatus(res *moltbook.StatusResponse) error {
 	fmt.Printf("🦞 Your Moltbook Profile\n")
@@ -27,10 +43,7 @@ func printPostsTable(posts []moltbook.Post) error {
 	fmt.Fprintln(w, "ID\tSubmolt\tTitle\tAuthor\tUpvotes\tComments")
 	for _, p := range posts {
 		id := p.ID
-		title := p.Title
-		if len(title) > 40 {
-			title = title[:37] + "..."
-		}
+		title := truncateRunes(p.Title, 40)
 		submolt := p.Submolt.Name
 		if submolt == "" {
 			submolt = "?"
@@ -50,6 +63,54 @@ func formatFeed(res *moltbook.FeedResponse) error {
 
 func formatPostCreated(res *moltbook.PostResponse) error {
 	fmt.Printf("✓ Post created! ID: %s\n", res.Post.ID)
+	return nil
+}
+
+func formatCommentsTable(comments []moltbook.Comment, full bool) error {
+	if len(comments) == 0 {
+		fmt.Println("No comments found.")
+		return nil
+	}
+
+	if full {
+		for _, c := range comments {
+			author := c.Author.Name
+			if author == "" {
+				author = "?"
+			}
+			fmt.Printf("Author: %s | Score: %d | Replies: %d\n", author, c.Score, c.ReplyCount)
+			fmt.Printf("%s\n\n", c.Content)
+		}
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "Author\tScore\tReplies\tContent")
+	for _, c := range comments {
+		author := c.Author.Name
+		if author == "" {
+			author = "?"
+		}
+
+		content := c.Content
+		// Remove newlines for table formatting
+		content = strings.ReplaceAll(content, "\n", " ")
+		content = truncateRunes(content, 60)
+
+		fmt.Fprintf(w, "%s\t%d\t%d\t%s\n", author, c.Score, c.ReplyCount, content)
+	}
+	return w.Flush()
+}
+
+func formatCommentsList(res *moltbook.CommentsResponse, full bool, postID string) error {
+	fmt.Printf("Top %d comments:\n", len(res.Comments))
+	err := formatCommentsTable(res.Comments, full)
+	if err != nil {
+		return err
+	}
+	if res.NextCursor != "" {
+		fmt.Printf("\nNext: molt post comments %s --cursor %s\n", postID, res.NextCursor)
+	}
 	return nil
 }
 
@@ -117,10 +178,7 @@ func formatDMRequests(res *moltbook.DMRequestsResponse) error {
 		if from == "" {
 			from = "?"
 		}
-		preview := req.MessagePreview
-		if len(preview) > 50 {
-			preview = preview[:50] + "..."
-		}
+		preview := truncateRunes(req.MessagePreview, 53)
 		convID := req.ConversationID
 		fmt.Printf("%s (%s)\n", from, convID)
 		fmt.Printf("  %s\n\n", preview)
@@ -141,10 +199,7 @@ func formatSubmolts(res *moltbook.SubmoltsResponse) error {
 		if name == "" {
 			name = "?"
 		}
-		desc := sub.Description
-		if len(desc) > 40 {
-			desc = desc[:37] + "..."
-		}
+		desc := truncateRunes(sub.Description, 40)
 		fmt.Fprintf(w, "m/%s\t%s\t%d\n", name, desc, sub.MemberCount)
 	}
 	return w.Flush()
@@ -166,9 +221,7 @@ func formatSearch(res *moltbook.SearchResponse) error {
 		if title == "" {
 			title = item.Content
 		}
-		if len(title) > 50 {
-			title = title[:47] + "..."
-		}
+		title = truncateRunes(title, 50)
 
 		fmt.Printf("[%s] %s\n", itemType, title)
 	}
@@ -195,8 +248,8 @@ func formatPost(res *moltbook.PostResponse) error {
 	return nil
 }
 
-func formatCommentCreated(res *moltbook.SuccessResponse) error {
-	fmt.Println("✓ Comment posted!")
+func formatCommentCreated(res *moltbook.CommentCreateResponse) error {
+	fmt.Printf("✓ Comment added! ID: %s\n", res.Comment.ID)
 	return nil
 }
 
@@ -210,7 +263,7 @@ func formatHome(res *moltbook.HomeResponse) error {
 		for _, act := range res.ActivityOnYourPosts {
 			fmt.Printf("- Post [%s] (%d new notifications)\n", act.PostID, act.NewNotificationCount)
 			for _, action := range act.SuggestedActions {
-				fmt.Printf("  > %s\n", moltbook.TranslateSuggestedAction(action))
+				fmt.Printf("  > %s\n", translateSuggestedAction(action))
 			}
 		}
 		fmt.Println()

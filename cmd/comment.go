@@ -49,7 +49,7 @@ func commentAddCmd() *cobra.Command {
 				b, _ := jsonMarshal(req)
 				return printResponse(b)
 			}
-			var out moltbook.SuccessResponse
+			var out moltbook.CommentCreateResponse
 			return runAPIAndPrint("POST", "/posts/"+postID+"/comments", nil, req, &out, func() error {
 				return formatCommentCreated(&out)
 			})
@@ -65,6 +65,7 @@ func commentAddCmd() *cobra.Command {
 func commentListCmd() *cobra.Command {
 	var sort, cursor string
 	var limit int
+	var full bool
 	cmd := &cobra.Command{
 		Use:   "list POST_ID",
 		Short: "List comments on a post",
@@ -76,11 +77,15 @@ func commentListCmd() *cobra.Command {
 			if cursor != "" {
 				q.Set("cursor", cursor)
 			}
-			return runAPI("GET", "/posts/"+args[0]+"/comments", q, nil)
+			var out moltbook.CommentsResponse
+			return runAPIAndPrint("GET", "/posts/"+args[0]+"/comments", q, nil, &out, func() error {
+				return formatCommentsList(&out, full, args[0])
+			})
 		},
 	}
 	cmd.Flags().StringVar(&sort, "sort", "best", "Sort: best|new|old")
 	cmd.Flags().IntVar(&limit, "limit", 35, "Top-level comments per page")
 	cmd.Flags().StringVar(&cursor, "cursor", "", "Pagination cursor")
+	cmd.Flags().BoolVar(&full, "full", false, "Show full comment content")
 	return cmd
 }
