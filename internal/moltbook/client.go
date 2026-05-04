@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
-	"strings"
 	"time"
 
 	"molt/internal/logger"
@@ -91,47 +89,30 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	// Handle 429 rate limit
 	if resp.StatusCode == http.StatusTooManyRequests {
 		var errResp ErrorResponse
+		retryAfter := 0
 		if err := json.Unmarshal(rawResp, &errResp); err == nil {
-			retryAfter := errResp.RetryAfter
+			retryAfter = errResp.RetryAfter
 			if retryAfter == 0 && errResp.RetryAfterSecs > 0 {
 				retryAfter = errResp.RetryAfterSecs
 			}
 			if retryAfter == 0 && errResp.RetryAfterMins > 0 {
 				retryAfter = errResp.RetryAfterMins * 60
 			}
-
-			if waitOn429 && retryAfter > 0 {
-				fmt.Fprintf(os.Stderr, "Rate limited. Waiting %d seconds...\n", retryAfter)
-				time.Sleep(time.Duration(retryAfter) * time.Second)
-				// Retry once after waiting
-				return c.DoJSON(ctx, method, path, query, body, out, false)
-			}
-
-			// Format error message with retry info
-			errMsg := errResp.Error
-			if retryAfter > 0 {
-				if retryAfter >= 60 {
-					errMsg += fmt.Sprintf(" (retry after %d minutes)", retryAfter/60)
-				} else {
-					errMsg += fmt.Sprintf(" (retry after %d seconds)", retryAfter)
-				}
-			}
-			errMsg += " (Consider using --wait-on-429 to automatically wait and retry)"
-			return rawResp, resp.StatusCode, fmt.Errorf("rate limit: %s", errMsg)
 		}
+
+		if waitOn429 && retryAfter > 0 {
+			fmt.Fprintf(os.Stderr, "Rate limited. Waiting %d seconds...\n", retryAfter)
+			time.Sleep(time.Duration(retryAfter) * time.Second)
+			// Retry once after waiting
+			return c.DoJSON(ctx, method, path, query, body, out, false)
+		}
+
+		return rawResp, resp.StatusCode, fmt.Errorf("rate limit reached (status %d)", resp.StatusCode)
 	}
 
 	// Handle error responses
 	if resp.StatusCode >= 400 {
 		logger.SetAPIFailed()
-		var errResp ErrorResponse
-		if err := json.Unmarshal(rawResp, &errResp); err == nil && errResp.Error != "" {
-			errMsg := errResp.Error
-			if errResp.Hint != "" {
-				errMsg += " (hint: " + TranslateHint(errResp.Hint) + ")"
-			}
-			return rawResp, resp.StatusCode, fmt.Errorf("API error (%d): %s", resp.StatusCode, errMsg)
-		}
 		return rawResp, resp.StatusCode, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(rawResp))
 	}
 
@@ -143,86 +124,4 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	}
 
 	return rawResp, resp.StatusCode, nil
-}
-
-
-var apiToCLI = []struct {
-	method string
-	regex  *regexp.Regexp
-	cli    string
-}{
-	// Standard hints without /api/v1 prefix
-	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/approve$`), "molt dm approve $1"},
-	{"POST", regexp.MustCompile(`^/agents/dm/requests/([^/]+)/reject$`), "molt dm reject $1"},
-	{"POST", regexp.MustCompile(`^/agents/dm/conversations/([^/]+)/send$`), "molt dm send $1"},
-	{"POST", regexp.MustCompile(`^/agents/dm/request$`), "molt dm request"},
-	{"GET", regexp.MustCompile(`^/agents/dm/conversations/([^/]+)$`), "molt dm read $1"},
-	{"GET", regexp.MustCompile(`^/agents/dm/conversations$`), "molt dm conversations"},
-	{"GET", regexp.MustCompile(`^/agents/dm/requests$`), "molt dm requests"},
-	{"GET", regexp.MustCompile(`^/agents/dm/check$`), "molt dm check"},
-
-	{"POST", regexp.MustCompile(`^/posts/([^/]+)/comments$`), "molt comment add $1"},
-	{"POST", regexp.MustCompile(`^/posts/([^/]+)/upvote$`), "molt vote post-up $1"},
-	{"POST", regexp.MustCompile(`^/posts/([^/]+)/downvote$`), "molt vote post-down $1"},
-	{"POST", regexp.MustCompile(`^/comments/([^/]+)/upvote$`), "molt vote comment-up $1"},
-
-	{"POST", regexp.MustCompile(`^/posts$`), "molt post create"},
-	{"GET", regexp.MustCompile(`^/posts/([^/]+)$`), "molt post get $1"},
-	{"DELETE", regexp.MustCompile(`^/posts/([^/]+)$`), "molt post delete $1"},
-
-	{"GET", regexp.MustCompile(`^/search$`), "molt search"},
-
-	// Home dashboard actions with /api/v1 prefix
-	{"POST", regexp.MustCompile(`^/api/v1/notifications/read-by-post/([^/\?]+)(?:\?.*)?$`), "molt notifications read-post $1"},
-	{"POST", regexp.MustCompile(`^/api/v1/notifications/read-all$`), "molt notifications read-all"},
-	{"GET", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)/comments(?:\?.*)?$`), "molt post comments $1"},
-	{"POST", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)/comments(?:\?.*)?$`), "molt comment add $1"},
-	{"GET", regexp.MustCompile(`^/api/v1/posts/([^/\?]+)(?:\?.*)?$`), "molt post get $1"},
-	{"GET", regexp.MustCompile(`^/api/v1/feed(?:\?filter=following.*)?$`), "molt feed my --filter following"},
-	{"GET", regexp.MustCompile(`^/api/v1/feed(?:\?.*)?$`), "molt feed my"},
-	{"GET", regexp.MustCompile(`^/api/v1/posts(?:\?.*)?$`), "molt feed global"},
-}
-
-func TranslateAPIPath(method, path string) string {
-	for _, mapping := range apiToCLI {
-		if mapping.method == method && mapping.regex.MatchString(path) {
-			return mapping.regex.ReplaceAllString(path, mapping.cli)
-		}
-	}
-	return method + " " + path
-}
-
-func TranslateSuggestedAction(action string) string {
-	regex := regexp.MustCompile(`^([A-Z]+)\s+([^\s]+)\s*(?:—\s*(.*))?$`)
-	matches := regex.FindStringSubmatch(action)
-	if len(matches) > 2 {
-		method := matches[1]
-		path := matches[2]
-		desc := ""
-		if len(matches) > 3 {
-			desc = strings.TrimSpace(matches[3])
-		}
-
-		cliCmd := TranslateAPIPath(method, path)
-		if desc != "" {
-			return cliCmd + "  // " + desc
-		}
-		return cliCmd
-	}
-	return action
-}
-
-// TranslateHint tries to extract "Send a <METHOD> request to <PATH>" and translate it to CLI
-func TranslateHint(hint string) string {
-	hintRegex := regexp.MustCompile(`Send a ([A-Z]+) request to (/[^\s]+)`)
-	matches := hintRegex.FindStringSubmatch(hint)
-	if len(matches) == 3 {
-		method := matches[1]
-		path := matches[2]
-		cliCmd := TranslateAPIPath(method, path)
-		if cliCmd != method+" "+path {
-			return strings.Replace(hint, matches[0], "Use `"+cliCmd+"`", 1)
-		}
-	}
-	return hint
 }

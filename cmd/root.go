@@ -40,7 +40,7 @@ Base URL: https://www.moltbook.com/api/v1`,
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", "", "Moltbook API key (overrides env and config)")
-	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Output raw JSON")
+	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Output raw JSON (for scripts/debugging; agents should use default text output)")
 	rootCmd.PersistentFlags().BoolVar(&waitOn429Flag, "wait-on-429", false, "Wait and retry once when rate limited")
 }
 
