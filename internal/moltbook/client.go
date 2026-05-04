@@ -105,7 +105,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 				return c.DoJSON(ctx, method, path, query, body, out, false)
 			}
 
-			return rawResp, resp.StatusCode, fmt.Errorf("rate limit: %s", string(rawResp))
+      return rawResp, resp.StatusCode, fmt.Errorf("rate limit reached (status %d)", resp.StatusCode)
 		}
 	}
 
