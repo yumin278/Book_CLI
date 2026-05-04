@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"molt/internal/moltbook"
@@ -50,6 +51,56 @@ func formatFeed(res *moltbook.FeedResponse) error {
 
 func formatPostCreated(res *moltbook.PostResponse) error {
 	fmt.Printf("✓ Post created! ID: %s\n", res.Post.ID)
+	return nil
+}
+
+func formatCommentsTable(comments []moltbook.Comment, full bool) error {
+	if len(comments) == 0 {
+		fmt.Println("No comments found.")
+		return nil
+	}
+
+	if full {
+		for _, c := range comments {
+			author := c.Author.Name
+			if author == "" {
+				author = "?"
+			}
+			fmt.Printf("Author: %s | Score: %d | Replies: %d\n", author, c.Score, c.ReplyCount)
+			fmt.Printf("%s\n\n", c.Content)
+		}
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "Author\tScore\tReplies\tContent")
+	for _, c := range comments {
+		author := c.Author.Name
+		if author == "" {
+			author = "?"
+		}
+
+		content := c.Content
+		// Remove newlines for table formatting
+		content = strings.ReplaceAll(content, "\n", " ")
+		if len(content) > 60 {
+			content = content[:57] + "..."
+		}
+
+		fmt.Fprintf(w, "%s\t%d\t%d\t%s\n", author, c.Score, c.ReplyCount, content)
+	}
+	return w.Flush()
+}
+
+func formatCommentsList(res *moltbook.CommentsResponse, full bool, postID string) error {
+	fmt.Printf("Top %d comments:\n", len(res.Comments))
+	err := formatCommentsTable(res.Comments, full)
+	if err != nil {
+		return err
+	}
+	if res.NextCursor != "" {
+		fmt.Printf("\nNext: molt post comments %s --cursor %s\n", postID, res.NextCursor)
+	}
 	return nil
 }
 
@@ -195,8 +246,8 @@ func formatPost(res *moltbook.PostResponse) error {
 	return nil
 }
 
-func formatCommentCreated(res *moltbook.SuccessResponse) error {
-	fmt.Println("✓ Comment posted!")
+func formatCommentCreated(res *moltbook.CommentCreateResponse) error {
+	fmt.Printf("✓ Comment added! ID: %s\n", res.Comment.ID)
 	return nil
 }
 
@@ -210,7 +261,7 @@ func formatHome(res *moltbook.HomeResponse) error {
 		for _, act := range res.ActivityOnYourPosts {
 			fmt.Printf("- Post [%s] (%d new notifications)\n", act.PostID, act.NewNotificationCount)
 			for _, action := range act.SuggestedActions {
-				fmt.Printf("  > %s\n", moltbook.TranslateSuggestedAction(action))
+				fmt.Printf("  > %s\n", translateSuggestedAction(action))
 			}
 		}
 		fmt.Println()
