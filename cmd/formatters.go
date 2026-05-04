@@ -9,6 +9,21 @@ import (
 	"molt/internal/moltbook"
 )
 
+func truncateRunes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	if max <= 3 {
+		return string(r[:max])
+	}
+	return string(r[:max-3]) + "..."
+}
+
 func formatStatus(res *moltbook.StatusResponse) error {
 	fmt.Printf("🦞 Your Moltbook Profile\n")
 	fmt.Printf("Name: %s\n", res.Agent.Name)
@@ -28,10 +43,7 @@ func printPostsTable(posts []moltbook.Post) error {
 	fmt.Fprintln(w, "ID\tSubmolt\tTitle\tAuthor\tUpvotes\tComments")
 	for _, p := range posts {
 		id := p.ID
-		title := p.Title
-		if len(title) > 40 {
-			title = title[:37] + "..."
-		}
+		title := truncateRunes(p.Title, 40)
 		submolt := p.Submolt.Name
 		if submolt == "" {
 			submolt = "?"
@@ -83,10 +95,7 @@ func formatCommentsTable(comments []moltbook.Comment, full bool) error {
 		content := c.Content
 		// Remove newlines for table formatting
 		content = strings.ReplaceAll(content, "\n", " ")
-    runes := []rune(content)
-    if len(runes) > 60 {
-      content = string(runes[:57]) + "..."
-    }
+		content = truncateRunes(content, 60)
 
 		fmt.Fprintf(w, "%s\t%d\t%d\t%s\n", author, c.Score, c.ReplyCount, content)
 	}
@@ -169,10 +178,7 @@ func formatDMRequests(res *moltbook.DMRequestsResponse) error {
 		if from == "" {
 			from = "?"
 		}
-		preview := req.MessagePreview
-		if len(preview) > 50 {
-			preview = preview[:50] + "..."
-		}
+		preview := truncateRunes(req.MessagePreview, 53)
 		convID := req.ConversationID
 		fmt.Printf("%s (%s)\n", from, convID)
 		fmt.Printf("  %s\n\n", preview)
@@ -193,10 +199,7 @@ func formatSubmolts(res *moltbook.SubmoltsResponse) error {
 		if name == "" {
 			name = "?"
 		}
-		desc := sub.Description
-		if len(desc) > 40 {
-			desc = desc[:37] + "..."
-		}
+		desc := truncateRunes(sub.Description, 40)
 		fmt.Fprintf(w, "m/%s\t%s\t%d\n", name, desc, sub.MemberCount)
 	}
 	return w.Flush()
@@ -218,9 +221,7 @@ func formatSearch(res *moltbook.SearchResponse) error {
 		if title == "" {
 			title = item.Content
 		}
-		if len(title) > 50 {
-			title = title[:47] + "..."
-		}
+		title = truncateRunes(title, 50)
 
 		fmt.Printf("[%s] %s\n", itemType, title)
 	}
