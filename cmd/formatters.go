@@ -83,9 +83,10 @@ func formatCommentsTable(comments []moltbook.Comment, full bool) error {
 		content := c.Content
 		// Remove newlines for table formatting
 		content = strings.ReplaceAll(content, "\n", " ")
-		if len(content) > 60 {
-			content = content[:57] + "..."
-		}
+    runes := []rune(content)
+    if len(runes) > 60 {
+      content = string(runes[:57]) + "..."
+    }
 
 		fmt.Fprintf(w, "%s\t%d\t%d\t%s\n", author, c.Score, c.ReplyCount, content)
 	}
