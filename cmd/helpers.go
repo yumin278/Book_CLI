@@ -15,6 +15,11 @@ import (
 
 const requestTimeout = 30 * time.Second
 
+var (
+	suggestedActionRegex = regexp.MustCompile(`^([A-Z]+)\s+([^\s]+)\s*(?:—\s*(.*))?$`)
+	hintTranslationRegex = regexp.MustCompile(`Send a ([A-Z]+) request to (/[^\s]+)`)
+)
+
 func requestContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), requestTimeout)
 }
@@ -115,8 +120,7 @@ func translateAPIPath(method, path string) string {
 }
 
 func translateSuggestedAction(action string) string {
-	regex := regexp.MustCompile(`^([A-Z]+)\s+([^\s]+)\s*(?:—\s*(.*))?$`)
-	matches := regex.FindStringSubmatch(action)
+	matches := suggestedActionRegex.FindStringSubmatch(action)
 	if len(matches) > 2 {
 		method := matches[1]
 		path := matches[2]
@@ -136,8 +140,7 @@ func translateSuggestedAction(action string) string {
 
 // translateHint tries to extract "Send a <METHOD> request to <PATH>" and translate it to CLI
 func translateHint(hint string) string {
-	hintRegex := regexp.MustCompile(`Send a ([A-Z]+) request to (/[^\s]+)`)
-	matches := hintRegex.FindStringSubmatch(hint)
+	matches := hintTranslationRegex.FindStringSubmatch(hint)
 	if len(matches) == 3 {
 		method := matches[1]
 		path := matches[2]
@@ -155,12 +158,16 @@ func formatAPIError(err error, raw []byte) error {
 	}
 
 	var errResp moltbook.ErrorResponse
-	if parseErr := json.Unmarshal(raw, &errResp); parseErr == nil && errResp.Error != "" {
+	errRespParsed := json.Unmarshal(raw, &errResp) == nil && errResp.Error != ""
+
+	var genericErr map[string]any
+	genericErrParsed := json.Unmarshal(raw, &genericErr) == nil
+
+	if errRespParsed {
 		errMsg := errResp.Error
 
 		// Some endpoints return message as string (like Unauthorized message)
-		var genericErr map[string]any
-		if parseErr2 := json.Unmarshal(raw, &genericErr); parseErr2 == nil {
+		if genericErrParsed {
 			if msg, ok := genericErr["message"]; ok {
 				if msgStr, ok2 := msg.(string); ok2 {
 					errMsg = fmt.Sprintf("%s (%s)", errResp.Error, msgStr)
@@ -187,8 +194,7 @@ func formatAPIError(err error, raw []byte) error {
 	}
 
 	// For validation errors like 400 Bad Request which return message as array
-	var genericErr map[string]any
-	if parseErr := json.Unmarshal(raw, &genericErr); parseErr == nil {
+	if genericErrParsed {
 		if msg, ok := genericErr["message"]; ok {
 			return fmt.Errorf("✗ Command failed\n錯在哪: %v\n正確用法: molt <command> --help", msg)
 		}

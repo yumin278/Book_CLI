@@ -89,24 +89,25 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	// Handle 429 rate limit
 	if resp.StatusCode == http.StatusTooManyRequests {
 		var errResp ErrorResponse
+		retryAfter := 0
 		if err := json.Unmarshal(rawResp, &errResp); err == nil {
-			retryAfter := errResp.RetryAfter
+			retryAfter = errResp.RetryAfter
 			if retryAfter == 0 && errResp.RetryAfterSecs > 0 {
 				retryAfter = errResp.RetryAfterSecs
 			}
 			if retryAfter == 0 && errResp.RetryAfterMins > 0 {
 				retryAfter = errResp.RetryAfterMins * 60
 			}
-
-			if waitOn429 && retryAfter > 0 {
-				fmt.Fprintf(os.Stderr, "Rate limited. Waiting %d seconds...\n", retryAfter)
-				time.Sleep(time.Duration(retryAfter) * time.Second)
-				// Retry once after waiting
-				return c.DoJSON(ctx, method, path, query, body, out, false)
-			}
-
-      return rawResp, resp.StatusCode, fmt.Errorf("rate limit reached (status %d)", resp.StatusCode)
 		}
+
+		if waitOn429 && retryAfter > 0 {
+			fmt.Fprintf(os.Stderr, "Rate limited. Waiting %d seconds...\n", retryAfter)
+			time.Sleep(time.Duration(retryAfter) * time.Second)
+			// Retry once after waiting
+			return c.DoJSON(ctx, method, path, query, body, out, false)
+		}
+
+		return rawResp, resp.StatusCode, fmt.Errorf("rate limit reached (status %d)", resp.StatusCode)
 	}
 
 	// Handle error responses
@@ -124,5 +125,3 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 
 	return rawResp, resp.StatusCode, nil
 }
-
-
