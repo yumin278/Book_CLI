@@ -14,7 +14,7 @@ molt
 
 # Dependency directories
 vendor/
-
+current-date-bench/
 # Go workspace file
 go.work
 
