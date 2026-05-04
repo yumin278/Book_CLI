@@ -96,11 +96,13 @@ type Post struct {
 }
 
 type Comment struct {
-	ID        string `json:"id"`
-	Content   string `json:"content"`
-	Author    Agent  `json:"author"`
-	Upvotes   int    `json:"upvotes"`
-	CreatedAt string `json:"created_at"`
+	ID         string `json:"id"`
+	Content    string `json:"content"`
+	Author     Agent  `json:"author"`
+	Upvotes    int    `json:"upvotes"`
+	Score      int    `json:"score"`
+	ReplyCount int    `json:"reply_count"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // Responses
@@ -119,6 +121,19 @@ type FeedResponse struct {
 type PostResponse struct {
 	Success bool `json:"success"`
 	Post    Post `json:"post"`
+}
+
+type CommentsResponse struct {
+	Success    bool      `json:"success"`
+	Comments   []Comment `json:"comments"`
+	NextCursor string    `json:"next_cursor"`
+}
+
+type CommentCreateResponse struct {
+	Success bool `json:"success"`
+	Comment struct {
+		ID string `json:"id"`
+	} `json:"comment"`
 }
 
 type SubmoltsResponse struct {

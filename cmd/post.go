@@ -97,6 +97,7 @@ func postGetCmd() *cobra.Command {
 	var withComments bool
 	var commentsSort, commentsCursor string
 	var commentsLimit int
+	var commentsFull bool
 
 	cmd := &cobra.Command{
 		Use:   "get POST_ID",
@@ -165,43 +166,28 @@ func postGetCmd() *cobra.Command {
 				return printValue(combined)
 			}
 
-			var postResp map[string]any
-			if err := json.Unmarshal(postRaw, &postResp); err != nil {
+			var postOut moltbook.PostResponse
+			if err := json.Unmarshal(postRaw, &postOut); err != nil {
 				return fmt.Errorf("failed to parse post response: %w", err)
 			}
 
-			var commentsResp map[string]any
-			if err := json.Unmarshal(commentsRaw, &commentsResp); err != nil {
+			var commentsOut moltbook.CommentsResponse
+			if err := json.Unmarshal(commentsRaw, &commentsOut); err != nil {
 				return fmt.Errorf("failed to parse comments response: %w", err)
 			}
 
-			combined := map[string]any{}
-			for k, v := range postResp {
-				combined[k] = v
+			if err := formatPost(&postOut); err != nil {
+				return err
 			}
-			if comments, ok := commentsResp["comments"]; ok {
-				combined["comments"] = comments
-			}
-			if sort, ok := commentsResp["sort"]; ok {
-				combined["comments_sort"] = sort
-			}
-			if hasMore, ok := commentsResp["has_more"]; ok {
-				combined["comments_has_more"] = hasMore
-			}
-			if count, ok := commentsResp["count"]; ok {
-				combined["comments_count"] = count
-			}
-			if nextCursor, ok := commentsResp["next_cursor"]; ok {
-				combined["comments_next_cursor"] = nextCursor
-			}
-
-			return printValue(combined)
+			fmt.Println("\n--- Comments ---")
+			return formatCommentsList(&commentsOut, commentsFull, args[0])
 		},
 	}
 	cmd.Flags().BoolVar(&withComments, "comments", false, "Include comments in the output")
 	cmd.Flags().StringVar(&commentsSort, "comments-sort", "best", "Comment sort when --comments is set: best|new|old")
 	cmd.Flags().IntVar(&commentsLimit, "comments-limit", 35, "Top-level comments per page when --comments is set")
 	cmd.Flags().StringVar(&commentsCursor, "comments-cursor", "", "Comment pagination cursor when --comments is set")
+	cmd.Flags().BoolVar(&commentsFull, "full", false, "Show full comment content when --comments is set")
 	return cmd
 }
 
@@ -220,6 +206,7 @@ func postDeleteCmd() *cobra.Command {
 func postCommentsCmd() *cobra.Command {
 	var sort, cursor string
 	var limit int
+	var full bool
 	cmd := &cobra.Command{
 		Use:     "comments POST_ID",
 		Aliases: []string{"comment-list"},
@@ -232,12 +219,16 @@ func postCommentsCmd() *cobra.Command {
 			if cursor != "" {
 				q.Set("cursor", cursor)
 			}
-			return runAPI("GET", "/posts/"+args[0]+"/comments", q, nil)
+			var out moltbook.CommentsResponse
+			return runAPIAndPrint("GET", "/posts/"+args[0]+"/comments", q, nil, &out, func() error {
+				return formatCommentsList(&out, full, args[0])
+			})
 		},
 	}
 	cmd.Flags().StringVar(&sort, "sort", "best", "Sort: best|new|old")
 	cmd.Flags().IntVar(&limit, "limit", 35, "Top-level comments per page")
 	cmd.Flags().StringVar(&cursor, "cursor", "", "Pagination cursor")
+	cmd.Flags().BoolVar(&full, "full", false, "Show full comment content")
 	return cmd
 }
 
