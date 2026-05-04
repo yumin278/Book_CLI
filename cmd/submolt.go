@@ -4,9 +4,16 @@ import (
 	"molt/internal/moltbook"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+// stripSubmoltPrefix removes the optional "m/" display prefix from a submolt name.
+// Both "memory" and "m/memory" are accepted and normalized to "memory".
+func stripSubmoltPrefix(name string) string {
+	return strings.TrimPrefix(name, "m/")
+}
 
 func init() {
 	submoltCmd := &cobra.Command{
@@ -41,7 +48,7 @@ func submoltInfoCmd() *cobra.Command {
 		Short: "Get submolt details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/submolts/"+args[0], nil, nil)
+			return runAPI("GET", "/submolts/"+stripSubmoltPrefix(args[0]), nil, nil)
 		},
 	}
 }
@@ -53,7 +60,7 @@ func submoltSubscribeCmd() *cobra.Command {
 		Short: "Subscribe to a submolt",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/submolts/" + args[0] + "/subscribe"
+			path := "/submolts/" + stripSubmoltPrefix(args[0]) + "/subscribe"
 			if dryRun {
 				fmt.Printf("[dry-run] POST %s\n", path)
 				return nil
@@ -72,7 +79,7 @@ func submoltUnsubscribeCmd() *cobra.Command {
 		Short: "Unsubscribe from a submolt",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/submolts/" + args[0] + "/subscribe"
+			path := "/submolts/" + stripSubmoltPrefix(args[0]) + "/subscribe"
 			if dryRun {
 				fmt.Printf("[dry-run] DELETE %s\n", path)
 				return nil
@@ -99,7 +106,7 @@ func submoltFeedCmd() *cobra.Command {
 				q.Set("cursor", cursor)
 			}
 			var out moltbook.FeedResponse
-			return runAPIAndPrint("GET", "/submolts/"+args[0]+"/feed", q, nil, &out, func() error {
+			return runAPIAndPrint("GET", "/submolts/"+stripSubmoltPrefix(args[0])+"/feed", q, nil, &out, func() error {
 				return formatFeed(&out)
 			})
 		},
