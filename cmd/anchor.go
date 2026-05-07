@@ -36,17 +36,11 @@ func init() {
 		Use:   "anchor-self",
 		Short: "Anchor cognitive identity to Moltbook profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			localCfg, err := config.LoadLocalConfig()
+			localCfg, err := config.LoadLocalConfigWithDefaults()
 			if err != nil {
-				return fmt.Errorf("failed to load local config: %w", err)
-			}
-			if localCfg == nil {
-				localCfg = &config.LocalConfig{}
+				return err
 			}
 			cogRoot := localCfg.CognitiveRoot
-			if cogRoot == "" {
-				cogRoot = filepath.Join(os.Getenv("HOME"), "playground", "calibration")
-			}
 			hash, err := computeCognitiveHash(cogRoot)
 			if err != nil {
 				return fmt.Errorf("failed to compute cognitive hash: %w", err)
@@ -78,17 +72,11 @@ func init() {
 		Use:   "compare-anchor",
 		Short: "Compare local cognitive hash with anchored identity",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			localCfg, err := config.LoadLocalConfig()
+			localCfg, err := config.LoadLocalConfigWithDefaults()
 			if err != nil {
-				return fmt.Errorf("failed to load local config: %w", err)
-			}
-			if localCfg == nil {
-				localCfg = &config.LocalConfig{}
+				return err
 			}
 			cogRoot := localCfg.CognitiveRoot
-			if cogRoot == "" {
-				cogRoot = filepath.Join(os.Getenv("HOME"), "playground", "calibration")
-			}
 			localHash, err := computeCognitiveHash(cogRoot)
 			if err != nil {
 				return fmt.Errorf("failed to compute local cognitive hash: %w", err)
