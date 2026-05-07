@@ -110,7 +110,8 @@ func LoadLocalConfigWithDefaults() (*LocalConfig, error) {
 	}
 
 	if localCfg.CognitiveRoot == "" {
-		localCfg.CognitiveRoot = filepath.Join(os.Getenv("HOME"), "playground", "calibration")
+		home, _ := os.UserHomeDir()
+		localCfg.CognitiveRoot = filepath.Join(home, "playground", "calibration")
 	}
 
 	return localCfg, nil
