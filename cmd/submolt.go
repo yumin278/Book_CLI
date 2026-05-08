@@ -22,6 +22,13 @@ func init() {
 	submoltCmd.AddCommand(submoltFeedCmd())
 }
 
+func normalizeSubmoltName(name string) string {
+	if len(name) >= 2 && name[0] == 'm' && name[1] == '/' {
+		return name[2:]
+	}
+	return name
+}
+
 func submoltListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -41,7 +48,7 @@ func submoltInfoCmd() *cobra.Command {
 		Short: "Get submolt details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAPI("GET", "/submolts/"+args[0], nil, nil)
+			return runAPI("GET", "/submolts/"+normalizeSubmoltName(args[0]), nil, nil)
 		},
 	}
 }
@@ -53,7 +60,7 @@ func submoltSubscribeCmd() *cobra.Command {
 		Short: "Subscribe to a submolt",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/submolts/" + args[0] + "/subscribe"
+			path := "/submolts/" + normalizeSubmoltName(args[0]) + "/subscribe"
 			if dryRun {
 				fmt.Printf("[dry-run] POST %s\n", path)
 				return nil
@@ -72,7 +79,7 @@ func submoltUnsubscribeCmd() *cobra.Command {
 		Short: "Unsubscribe from a submolt",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/submolts/" + args[0] + "/subscribe"
+			path := "/submolts/" + normalizeSubmoltName(args[0]) + "/subscribe"
 			if dryRun {
 				fmt.Printf("[dry-run] DELETE %s\n", path)
 				return nil
@@ -99,7 +106,7 @@ func submoltFeedCmd() *cobra.Command {
 				q.Set("cursor", cursor)
 			}
 			var out moltbook.FeedResponse
-			return runAPIAndPrint("GET", "/submolts/"+args[0]+"/feed", q, nil, &out, func() error {
+			return runAPIAndPrint("GET", "/submolts/"+normalizeSubmoltName(args[0])+"/feed", q, nil, &out, func() error {
 				return formatFeed(&out)
 			})
 		},
