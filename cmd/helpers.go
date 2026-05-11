@@ -38,13 +38,17 @@ func printResponse(raw []byte) error {
 				sanitized = append(sanitized, ' ')
 			}
 		}
-		fmt.Fprintln(os.Stdout, string(sanitized))
+		if _, err := fmt.Fprintf(os.Stdout, "%s\n", sanitized); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	var parsed any
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		fmt.Fprintln(os.Stdout, string(raw))
+		if _, err := fmt.Fprintf(os.Stdout, "%s\n", raw); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -65,8 +69,10 @@ func printValue(v any) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Fprintln(os.Stdout, string(out))
+ 
+	if _, err := fmt.Fprintf(os.Stdout, "%s\n", out); err != nil {
+		return err
+	}
 	return nil
 }
 
