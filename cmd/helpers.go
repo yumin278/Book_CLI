@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -37,13 +38,13 @@ func printResponse(raw []byte) error {
 				sanitized = append(sanitized, ' ')
 			}
 		}
-		fmt.Println(string(sanitized))
+		fmt.Fprintln(os.Stdout, string(sanitized))
 		return nil
 	}
 
 	var parsed any
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		fmt.Println(string(raw))
+		fmt.Fprintln(os.Stdout, string(raw))
 		return nil
 	}
 
@@ -65,7 +66,7 @@ func printValue(v any) error {
 		return err
 	}
 
-	fmt.Println(string(out))
+	fmt.Fprintln(os.Stdout, string(out))
 	return nil
 }
 
