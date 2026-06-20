@@ -10,6 +10,7 @@ import (
 const noAuthAnnotation = "no_auth"
 
 var (
+	proxyFlag     string
 	apiKeyFlag    string
 	jsonFlag      bool
 	waitOn429Flag bool
@@ -32,7 +33,11 @@ Base URL: https://www.moltbook.com/api/v1`,
 				return err
 			}
 
-			api = moltbook.NewClient(apiKey)
+			proxyURL := config.GetProxyURL(proxyFlag)
+			api, err = moltbook.NewClient(apiKey, proxyURL)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}
@@ -40,6 +45,7 @@ Base URL: https://www.moltbook.com/api/v1`,
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", "", "Moltbook API key (overrides env and config)")
+	rootCmd.PersistentFlags().StringVar(&proxyFlag, "proxy", "", "Proxy URL (e.g., socks5://127.0.0.1:1080) (overrides env and config)")
 	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Output raw JSON (for scripts/debugging; agents should use default text output)")
 	rootCmd.PersistentFlags().BoolVar(&waitOn429Flag, "wait-on-429", false, "Wait and retry once when rate limited")
 }
