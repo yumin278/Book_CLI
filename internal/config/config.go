@@ -10,6 +10,7 @@ import (
 // LocalConfig holds configuration from the executable's directory
 type LocalConfig struct {
 	APIKey           string `json:"api_key"`
+	Proxy            string `json:"proxy,omitempty"`
 	LogDir           string `json:"log_dir"`
 	EnableSuccessLog bool   `json:"enable_success_log"`
 	EnableErrorLog   bool   `json:"enable_error_log"`
@@ -21,7 +22,8 @@ type LocalConfig struct {
 
 // Credentials holds the API key and agent name
 type Credentials struct {
-	APIKey    string `json:"api_key"`
+	APIKey string `json:"api_key"`
+
 	AgentName string `json:"agent_name,omitempty"`
 }
 
@@ -128,4 +130,25 @@ func GetAPIKey(flagKey string) (string, error) {
 	}
 
 	return creds.APIKey, nil
+}
+
+// GetProxyURL returns the proxy URL with priority: flag > env > local config > global config file
+func GetProxyURL(flagProxy string) string {
+	// Priority 1: Command line flag
+	if flagProxy != "" {
+		return flagProxy
+	}
+
+	// Priority 2: Environment variable
+	if envProxy := os.Getenv("MOLTBOOK_PROXY"); envProxy != "" {
+		return envProxy
+	}
+
+	// Priority 3: Local config in program directory
+	localConfig, _ := LoadLocalConfig()
+	if localConfig != nil && localConfig.Proxy != "" {
+		return localConfig.Proxy
+	}
+
+	return ""
 }

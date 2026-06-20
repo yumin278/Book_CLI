@@ -37,7 +37,7 @@ The response includes a claim_url to send to your human for verification.`,
 				Description: description,
 			}
 
-			client := moltbook.NewClient("")
+			client := moltbook.NewClient("", config.GetProxyURL(proxyFlag))
 			ctx, cancel := requestContext()
 			defer cancel()
 			raw, _, err := client.DoJSON(ctx, "POST", "/agents/register", nil, req, nil, waitOn429Flag)

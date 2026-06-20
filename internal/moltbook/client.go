@@ -1,6 +1,10 @@
 package moltbook
 
 import (
+	"net"
+
+	"golang.org/x/net/proxy"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -27,18 +31,32 @@ type Client struct {
 }
 
 // NewClient creates a new Moltbook API client
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey, proxyURL string) *Client {
+	transport := &http.Transport{}
+	if proxyURL != "" {
+		pURL, err := url.Parse(proxyURL)
+		if err == nil {
+			if pURL.Scheme == "socks5" {
+				dialer, err := proxy.FromURL(pURL, proxy.Direct)
+				if err == nil {
+					transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+						return dialer.Dial(network, addr)
+					}
+				}
+			} else if pURL.Scheme == "http" || pURL.Scheme == "https" {
+				transport.Proxy = http.ProxyURL(pURL)
+			}
+		}
+	}
 	return &Client{
 		BaseURL: BaseURL,
 		HTTPClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
 		APIKey: apiKey,
 	}
 }
-
-// DoJSON performs an HTTP request and handles JSON response
-// Returns: raw response bytes, status code, error
 func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, body interface{}, out interface{}, waitOn429 bool) ([]byte, int, error) {
 	logger.SetAPICalled()
 
