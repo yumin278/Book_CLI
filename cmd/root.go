@@ -34,7 +34,10 @@ Base URL: https://www.moltbook.com/api/v1`,
 			}
 
 			proxyURL := config.GetProxyURL(proxyFlag)
-			api = moltbook.NewClient(apiKey, proxyURL)
+			api, err = moltbook.NewClient(apiKey, proxyURL)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}

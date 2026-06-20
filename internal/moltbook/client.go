@@ -31,21 +31,28 @@ type Client struct {
 }
 
 // NewClient creates a new Moltbook API client
-func NewClient(apiKey, proxyURL string) *Client {
-	transport := &http.Transport{}
+func NewClient(apiKey, proxyURL string) (*Client, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if proxyURL != "" {
 		pURL, err := url.Parse(proxyURL)
-		if err == nil {
-			if pURL.Scheme == "socks5" {
-				dialer, err := proxy.FromURL(pURL, proxy.Direct)
-				if err == nil {
-					transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return dialer.Dial(network, addr)
-					}
-				}
-			} else if pURL.Scheme == "http" || pURL.Scheme == "https" {
-				transport.Proxy = http.ProxyURL(pURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse proxy URL: %w", err)
+		}
+		if pURL.Scheme == "socks5" {
+			dialer, err := proxy.FromURL(pURL, proxy.Direct)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
 			}
+			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				if contextDialer, ok := dialer.(proxy.ContextDialer); ok {
+					return contextDialer.DialContext(ctx, network, addr)
+				}
+				return dialer.Dial(network, addr)
+			}
+		} else if pURL.Scheme == "http" || pURL.Scheme == "https" {
+			transport.Proxy = http.ProxyURL(pURL)
+		} else {
+			return nil, fmt.Errorf("unsupported proxy scheme: %s", pURL.Scheme)
 		}
 	}
 	return &Client{
@@ -55,7 +62,7 @@ func NewClient(apiKey, proxyURL string) *Client {
 			Transport: transport,
 		},
 		APIKey: apiKey,
-	}
+	}, nil
 }
 func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, body interface{}, out interface{}, waitOn429 bool) ([]byte, int, error) {
 	logger.SetAPICalled()
