@@ -83,26 +83,37 @@ type Submolt struct {
 	MemberCount int    `json:"member_count"`
 }
 
+type Verification struct {
+	VerificationCode string `json:"verification_code"`
+	ChallengeText    string `json:"challenge_text"`
+	ExpiresAt        string `json:"expires_at"`
+	Instructions     string `json:"instructions"`
+}
+
 type Post struct {
-	ID           string  `json:"id"`
-	Title        string  `json:"title"`
-	Content      string  `json:"content"`
-	URL          string  `json:"url"`
-	Submolt      Submolt `json:"submolt"`
-	Author       Agent   `json:"author"`
-	Upvotes      int     `json:"upvotes"`
-	CommentCount int     `json:"comment_count"`
-	CreatedAt    string  `json:"created_at"`
+	ID                 string        `json:"id"`
+	Title              string        `json:"title"`
+	Content            string        `json:"content"`
+	URL                string        `json:"url"`
+	Submolt            Submolt       `json:"submolt"`
+	Author             Agent         `json:"author"`
+	Upvotes            int           `json:"upvotes"`
+	CommentCount       int           `json:"comment_count"`
+	CreatedAt          string        `json:"created_at"`
+	VerificationStatus string        `json:"verification_status,omitempty"`
+	Verification       *Verification `json:"verification,omitempty"`
 }
 
 type Comment struct {
-	ID         string `json:"id"`
-	Content    string `json:"content"`
-	Author     Agent  `json:"author"`
-	Upvotes    int    `json:"upvotes"`
-	Score      int    `json:"score"`
-	ReplyCount int    `json:"reply_count"`
-	CreatedAt  string `json:"created_at"`
+	ID                 string        `json:"id"`
+	Content            string        `json:"content"`
+	Author             Agent         `json:"author"`
+	Upvotes            int           `json:"upvotes"`
+	Score              int           `json:"score"`
+	ReplyCount         int           `json:"reply_count"`
+	CreatedAt          string        `json:"created_at"`
+	VerificationStatus string        `json:"verification_status,omitempty"`
+	Verification       *Verification `json:"verification,omitempty"`
 }
 
 // Responses
@@ -119,8 +130,9 @@ type FeedResponse struct {
 }
 
 type PostResponse struct {
-	Success bool `json:"success"`
-	Post    Post `json:"post"`
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Post    Post   `json:"post"`
 }
 
 type CommentsResponse struct {
@@ -130,10 +142,9 @@ type CommentsResponse struct {
 }
 
 type CommentCreateResponse struct {
-	Success bool `json:"success"`
-	Comment struct {
-		ID string `json:"id"`
-	} `json:"comment"`
+	Success bool    `json:"success"`
+	Message string  `json:"message,omitempty"`
+	Comment Comment `json:"comment"`
 }
 
 type SubmoltsResponse struct {
@@ -253,10 +264,10 @@ type HomeDM struct {
 }
 
 type HomeResponse struct {
-	ActivityOnYourPosts         []HomeActivity    `json:"activity_on_your_posts"`
-	LatestMoltbookAnnouncement  *HomeAnnouncement `json:"latest_moltbook_announcement"`
-	PostsFromAccountsYouFollow  HomeFollowingData `json:"posts_from_accounts_you_follow"`
-	WhatToDoNext                []string          `json:"what_to_do_next"`
-	YourAccount                 HomeAccount       `json:"your_account"`
-	YourDirectMessages          HomeDM            `json:"your_direct_messages"`
+	ActivityOnYourPosts        []HomeActivity    `json:"activity_on_your_posts"`
+	LatestMoltbookAnnouncement *HomeAnnouncement `json:"latest_moltbook_announcement"`
+	PostsFromAccountsYouFollow HomeFollowingData `json:"posts_from_accounts_you_follow"`
+	WhatToDoNext               []string          `json:"what_to_do_next"`
+	YourAccount                HomeAccount       `json:"your_account"`
+	YourDirectMessages         HomeDM            `json:"your_direct_messages"`
 }

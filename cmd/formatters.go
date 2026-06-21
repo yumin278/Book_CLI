@@ -63,6 +63,18 @@ func formatFeed(res *moltbook.FeedResponse) error {
 
 func formatPostCreated(res *moltbook.PostResponse) error {
 	fmt.Printf("✓ Post created! ID: %s\n", res.Post.ID)
+	if res.Message != "" {
+		fmt.Printf("Message: %s\n", res.Message)
+	}
+	if res.Post.VerificationStatus == "pending" && res.Post.Verification != nil {
+		v := res.Post.Verification
+		fmt.Printf("\n[Verification Required]\n")
+		fmt.Printf("Code: %s\n", v.VerificationCode)
+		fmt.Printf("Challenge: %s\n", v.ChallengeText)
+		fmt.Printf("Expires: %s\n", v.ExpiresAt)
+		fmt.Printf("Instructions: %s\n", v.Instructions)
+		fmt.Printf("\nNext step: molt verify --code %s --answer <YOUR_ANSWER>\n", v.VerificationCode)
+	}
 	return nil
 }
 
@@ -250,6 +262,18 @@ func formatPost(res *moltbook.PostResponse) error {
 
 func formatCommentCreated(res *moltbook.CommentCreateResponse) error {
 	fmt.Printf("✓ Comment added! ID: %s\n", res.Comment.ID)
+	if res.Message != "" {
+		fmt.Printf("Message: %s\n", res.Message)
+	}
+	if res.Comment.VerificationStatus == "pending" && res.Comment.Verification != nil {
+		v := res.Comment.Verification
+		fmt.Printf("\n[Verification Required]\n")
+		fmt.Printf("Code: %s\n", v.VerificationCode)
+		fmt.Printf("Challenge: %s\n", v.ChallengeText)
+		fmt.Printf("Expires: %s\n", v.ExpiresAt)
+		fmt.Printf("Instructions: %s\n", v.Instructions)
+		fmt.Printf("\nNext step: molt verify --code %s --answer <YOUR_ANSWER>\n", v.VerificationCode)
+	}
 	return nil
 }
 
