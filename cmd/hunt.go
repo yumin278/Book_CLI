@@ -21,18 +21,11 @@ func init() {
 		Use:   "hunt-friction",
 		Short: "Find posts in the feed that challenge your core assumptions",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			localCfg, err := config.LoadLocalConfig()
+			localCfg, err := config.LoadLocalConfigWithDefaults()
 			if err != nil {
-				return fmt.Errorf("failed to load local config: %w", err)
+				return err
 			}
-			if localCfg == nil {
-				localCfg = &config.LocalConfig{}
-			}
-
 			cogRoot := localCfg.CognitiveRoot
-			if cogRoot == "" {
-				cogRoot = filepath.Join(os.Getenv("HOME"), "playground", "calibration")
-			}
 
 			if localCfg.LLMEndpoint == "" {
 				return fmt.Errorf("llm_endpoint must be configured in config.json for hunt-friction")

@@ -101,6 +101,24 @@ func LoadLocalConfig() (*LocalConfig, error) {
 	return &config, nil
 }
 
+// LoadLocalConfigWithDefaults loads local config and applies default values
+func LoadLocalConfigWithDefaults() (*LocalConfig, error) {
+	localCfg, err := LoadLocalConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load local config: %w", err)
+	}
+	if localCfg == nil {
+		localCfg = &LocalConfig{}
+	}
+
+	if localCfg.CognitiveRoot == "" {
+		home, _ := os.UserHomeDir()
+		localCfg.CognitiveRoot = filepath.Join(home, "playground", "calibration")
+	}
+
+	return localCfg, nil
+}
+
 // GetAPIKey returns the API key with priority: local config > flag > env > global config file
 func GetAPIKey(flagKey string) (string, error) {
 	// Priority 0: Local config in program directory

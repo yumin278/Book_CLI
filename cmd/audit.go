@@ -25,18 +25,11 @@ func init() {
 				return fmt.Errorf("--content cannot be empty")
 			}
 
-			localCfg, err := config.LoadLocalConfig()
+			localCfg, err := config.LoadLocalConfigWithDefaults()
 			if err != nil {
-				return fmt.Errorf("failed to load local config: %w", err)
+				return err
 			}
-			if localCfg == nil {
-				localCfg = &config.LocalConfig{}
-			}
-
 			cogRoot := localCfg.CognitiveRoot
-			if cogRoot == "" {
-				cogRoot = filepath.Join(os.Getenv("HOME"), "playground", "calibration")
-			}
 
 			// Read failure matrix
 			fmPath := filepath.Join(cogRoot, "failure_matrix.md")
